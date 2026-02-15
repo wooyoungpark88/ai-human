@@ -137,7 +137,7 @@ class DeepgramSTTService:
         except Exception as e:
             logger.error(f"[STT] 트랜스크립트 처리 오류: {e}")
 
-    async def _on_utterance_end(self, _client, result, **kwargs) -> None:
+    async def _on_utterance_end(self, _client, *args, **kwargs) -> None:
         """발화 종료 이벤트 - LLM 호출 트리거"""
         await self.transcript_queue.put(
             {
