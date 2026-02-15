@@ -1,9 +1,8 @@
 """Deepgram 실시간 스트리밍 STT 서비스"""
 
 import asyncio
-import json
 import logging
-from typing import AsyncGenerator, Callable, Optional
+from typing import AsyncGenerator
 
 from deepgram import (
     DeepgramClient,
@@ -21,24 +20,26 @@ class DeepgramSTTService:
     """Deepgram WebSocket 기반 실시간 음성-텍스트 변환 서비스"""
 
     def __init__(self):
-        config = DeepgramClientOptions(
-            api_key=settings.DEEPGRAM_API_KEY,
-            options={"keepalive": "true"},
-        )
-        self.client = DeepgramClient("", config)
-        self.client.api_key = settings.DEEPGRAM_API_KEY
         self.connection = None
         self.transcript_queue: asyncio.Queue[dict] = asyncio.Queue()
         self._is_connected = False
 
     async def connect(self) -> bool:
         """Deepgram 실시간 연결을 시작합니다. 성공 시 True 반환."""
-        if not settings.DEEPGRAM_API_KEY or settings.DEEPGRAM_API_KEY.startswith("your_"):
-            logger.warning("Deepgram API 키가 설정되지 않았습니다. STT 비활성화.")
+        api_key = settings.DEEPGRAM_API_KEY
+        if not api_key or api_key.startswith("your_"):
+            logger.warning("[STT] Deepgram API 키가 설정되지 않았습니다. STT 비활성화.")
             return False
 
+        logger.info(f"[STT] Deepgram 연결 시도 (API key: {api_key[:8]}...{api_key[-4:]})")
+
         try:
-            self.connection = self.client.listen.asyncwebsocket.v("1")
+            config = DeepgramClientOptions(
+                api_key=api_key,
+                options={"keepalive": "true"},
+            )
+            client = DeepgramClient(api_key, config)
+            self.connection = client.listen.asyncwebsocket.v("1")
 
             # 이벤트 핸들러 등록
             self.connection.on(
@@ -67,14 +68,14 @@ class DeepgramSTTService:
             result = await self.connection.start(options)
             if result:
                 self._is_connected = True
-                logger.info("Deepgram STT 연결 성공")
+                logger.info("[STT] Deepgram 연결 성공")
                 return True
             else:
-                logger.error("Deepgram STT 연결 실패")
+                logger.error("[STT] Deepgram 연결 실패 (start() returned False)")
                 return False
 
         except Exception as e:
-            logger.error(f"Deepgram STT 연결 오류: {e}")
+            logger.error(f"[STT] Deepgram 연결 오류: {type(e).__name__}: {e}")
             return False
 
     async def send_audio(self, audio_data: bytes) -> None:
@@ -83,7 +84,8 @@ class DeepgramSTTService:
             try:
                 await self.connection.send(audio_data)
             except Exception as e:
-                logger.error(f"오디오 전송 오류: {e}")
+                logger.error(f"[STT] 오디오 전송 오류: {type(e).__name__}: {e}")
+                self._is_connected = False
 
     async def get_transcripts(self) -> AsyncGenerator[dict, None]:
         """트랜스크립트 이벤트를 비동기적으로 수신합니다."""
@@ -105,9 +107,9 @@ class DeepgramSTTService:
             try:
                 await self.connection.finish()
             except Exception as e:
-                logger.warning(f"Deepgram 연결 종료 중 오류: {e}")
+                logger.warning(f"[STT] 연결 종료 중 오류: {e}")
             self.connection = None
-        logger.info("Deepgram STT 연결 종료")
+        logger.info("[STT] Deepgram 연결 종료")
 
     # --- 이벤트 핸들러 ---
 
@@ -128,12 +130,12 @@ class DeepgramSTTService:
             )
 
             if is_final:
-                logger.debug(f"[STT Final] {sentence}")
+                logger.info(f"[STT Final] {sentence}")
             else:
-                logger.debug(f"[STT Partial] {sentence}")
+                logger.info(f"[STT Partial] {sentence}")
 
         except Exception as e:
-            logger.error(f"트랜스크립트 처리 오류: {e}")
+            logger.error(f"[STT] 트랜스크립트 처리 오류: {e}")
 
     async def _on_utterance_end(self, _client, result, **kwargs) -> None:
         """발화 종료 이벤트 - LLM 호출 트리거"""
@@ -144,16 +146,16 @@ class DeepgramSTTService:
                 "is_final": True,
             }
         )
-        logger.debug("[STT] 발화 종료 감지")
+        logger.info("[STT] 발화 종료 감지")
 
     async def _on_error(self, _client, error, **kwargs) -> None:
         """오류 이벤트"""
-        logger.error(f"Deepgram STT 오류: {error}")
+        logger.error(f"[STT] Deepgram 오류: {error}")
 
     async def _on_close(self, _client, close, **kwargs) -> None:
         """연결 종료 이벤트"""
         self._is_connected = False
-        logger.info("Deepgram STT 연결이 닫혔습니다")
+        logger.info("[STT] Deepgram 연결이 닫혔습니다")
 
     @property
     def is_connected(self) -> bool:

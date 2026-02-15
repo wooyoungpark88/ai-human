@@ -151,6 +151,7 @@ class ConversationSession:
         """수신한 오디오 데이터를 STT 서비스에 전달합니다."""
         try:
             audio_bytes = base64.b64decode(audio_base64)
+            logger.info(f"[Audio] 수신: {len(audio_bytes)} bytes, STT connected: {self.stt_service.is_connected}")
             await self.stt_service.send_audio(audio_bytes)
         except Exception as e:
             logger.error(f"오디오 처리 오류: {e}")
@@ -343,6 +344,8 @@ async def websocket_conversation(websocket: WebSocket):
                         audio_data = data.get("data", "")
                         if audio_data:
                             await session.process_audio(audio_data)
+                    else:
+                        logger.warning("[WS] 오디오 수신했으나 STT 비활성 상태")
 
                 elif msg_type == "text":
                     # 텍스트 직접 입력 (STT 비활성 시 또는 테스트용)
