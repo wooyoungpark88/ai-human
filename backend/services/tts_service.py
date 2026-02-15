@@ -54,7 +54,7 @@ class ElevenLabsTTSService:
                 stability = emotion_mapping.voice_stability
                 style = emotion_mapping.voice_style
 
-            audio_response = await self.client.text_to_speech.convert(
+            audio_response = await self.client.text_to_speech.convert_as_stream(
                 voice_id=self.voice_id,
                 text=tagged_text,
                 model_id=self.model_id,
