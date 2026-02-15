@@ -18,7 +18,6 @@ import {
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useMicrophone } from "@/hooks/useMicrophone";
 import { useSimli } from "@/hooks/useSimli";
-import { createClient } from "@/lib/supabase/client";
 import type {
   ChatMessage,
   EmotionType,
@@ -34,8 +33,6 @@ interface ProfileInfo {
 }
 
 export default function Home() {
-  const supabase = createClient();
-
   // 상태 관리
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [partialTranscript, setPartialTranscript] = useState("");
@@ -58,40 +55,30 @@ export default function Home() {
   // Simli 아바타 훅
   const simli = useSimli();
 
-  // 사용자 정보 로드
+  // 사용자 정보 로드 (쿠키 세션)
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserName(
-          user.user_metadata?.full_name || user.user_metadata?.name || user.email || ""
-        );
-      }
-    });
-  }, [supabase.auth]);
+    const session = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("session="))
+      ?.split("=")[1];
+    if (session) {
+      try { setUserName(atob(session)); } catch { /* ignore */ }
+    }
+  }, []);
 
-  // 프로필 목록 로드 (Supabase에서 조회, 실패 시 백엔드 fallback)
+  // 프로필 목록 로드 (백엔드 API)
   useEffect(() => {
     async function loadProfiles() {
-      const { data, error } = await supabase
-        .from("ai_profiles")
-        .select("id, name, description")
-        .eq("is_public", true);
-
-      if (data && !error) {
-        setProfiles(data);
-      } else {
-        // Supabase 테이블 미생성 시 백엔드 API fallback
-        try {
-          const res = await fetch(`${API_URL}/api/profiles`);
-          const json = await res.json();
-          if (json.profiles) setProfiles(json.profiles);
-        } catch (err) {
-          console.warn("프로필 목록 로드 실패:", err);
-        }
+      try {
+        const res = await fetch(`${API_URL}/api/profiles`);
+        const json = await res.json();
+        if (json.profiles) setProfiles(json.profiles);
+      } catch (err) {
+        console.warn("프로필 목록 로드 실패:", err);
       }
     }
     loadProfiles();
-  }, [supabase]);
+  }, []);
 
   // partialTranscript ref 동기화
   useEffect(() => {
@@ -250,10 +237,10 @@ export default function Home() {
   }, [mic]);
 
   // 로그아웃
-  const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut();
+  const handleLogout = useCallback(() => {
+    document.cookie = "session=; path=/; max-age=0";
     window.location.href = "/login";
-  }, [supabase.auth]);
+  }, []);
 
   // 연결 상태 색상
   const getStatusColor = (status: ConnectionStatus) => {
