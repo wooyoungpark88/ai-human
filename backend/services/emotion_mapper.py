@@ -83,6 +83,24 @@ VOICE_DIRECTION_TAG_MAP: dict[str, str] = {
 }
 
 
+def round_to_valid_stability(value: float) -> float:
+    """
+    ElevenLabs API가 허용하는 stability 값(0.0, 0.5, 1.0)으로 반올림합니다.
+    
+    Args:
+        value: 계산된 stability 값
+        
+    Returns:
+        0.0, 0.5, 1.0 중 하나
+    """
+    if value < 0.25:
+        return 0.0
+    elif value < 0.75:
+        return 0.5
+    else:
+        return 1.0
+
+
 def get_emotion_mapping(emotion: EmotionType, intensity: float = 0.5) -> EmotionMapping:
     """
     감정 타입과 강도에 따라 매핑 결과를 반환합니다.
@@ -91,7 +109,8 @@ def get_emotion_mapping(emotion: EmotionType, intensity: float = 0.5) -> Emotion
     mapping = EMOTION_MAP.get(emotion, EMOTION_MAP[EmotionType.NEUTRAL])
 
     # intensity가 높을수록 stability를 낮추어 감정 표현을 풍부하게
-    adjusted_stability = max(0.1, mapping.voice_stability - (intensity * 0.2))
+    raw_stability = mapping.voice_stability - (intensity * 0.2)
+    adjusted_stability = round_to_valid_stability(raw_stability)
     adjusted_style = min(1.0, mapping.voice_style + (intensity * 0.2))
 
     # speed: intensity가 높을수록 기본 속도에서의 편차를 강화
