@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # ElevenLabs
     ELEVENLABS_API_KEY: str = ""
     ELEVENLABS_VOICE_ID: str = ""
+    ELEVENLABS_MODEL_ID: str = "eleven_v3"
 
     # Deepgram
     DEEPGRAM_API_KEY: str = ""

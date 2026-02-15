@@ -348,6 +348,8 @@ export default function Home() {
             isLoading={simli.isLoading}
             isInitialized={simli.isInitialized}
             error={simli.error}
+            currentEmotion={currentEmotion}
+            emotionIntensity={emotionIntensity}
           />
 
           {/* 마이크 컨트롤 */}

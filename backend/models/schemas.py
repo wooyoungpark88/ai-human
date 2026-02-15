@@ -30,6 +30,7 @@ class EmotionMapping(BaseModel):
     elevenlabs_audio_tag: str
     voice_stability: float
     voice_style: float
+    voice_speed: float = 1.0  # ElevenLabs speed (0.7~1.2)
 
 
 class ClientMessage(BaseModel):

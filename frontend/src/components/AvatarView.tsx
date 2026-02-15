@@ -2,6 +2,29 @@
 
 import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
+import type { EmotionType } from "@/lib/types";
+
+const EMOTION_GLOW: Record<string, string> = {
+  neutral: "shadow-none",
+  happy: "shadow-[0_0_25px_rgba(250,204,21,0.4)]",
+  sad: "shadow-[0_0_25px_rgba(96,165,250,0.4)]",
+  angry: "shadow-[0_0_25px_rgba(248,113,113,0.4)]",
+  surprised: "shadow-[0_0_25px_rgba(192,132,252,0.4)]",
+  thinking: "shadow-[0_0_25px_rgba(129,140,248,0.4)]",
+  anxious: "shadow-[0_0_25px_rgba(251,146,60,0.4)]",
+  empathetic: "shadow-[0_0_25px_rgba(74,222,128,0.4)]",
+};
+
+const EMOTION_BORDER: Record<string, string> = {
+  neutral: "border-transparent",
+  happy: "border-yellow-400/60",
+  sad: "border-blue-400/60",
+  angry: "border-red-400/60",
+  surprised: "border-purple-400/60",
+  thinking: "border-indigo-400/60",
+  anxious: "border-orange-400/60",
+  empathetic: "border-green-400/60",
+};
 
 interface AvatarViewProps {
   onVideoRef?: (video: HTMLVideoElement) => void;
@@ -9,6 +32,8 @@ interface AvatarViewProps {
   isLoading?: boolean;
   isInitialized?: boolean;
   error?: string | null;
+  currentEmotion?: EmotionType;
+  emotionIntensity?: number;
 }
 
 export function AvatarView({
@@ -17,6 +42,8 @@ export function AvatarView({
   isLoading = false,
   isInitialized = false,
   error,
+  currentEmotion = "neutral",
+  emotionIntensity = 0.5,
 }: AvatarViewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -30,8 +57,13 @@ export function AvatarView({
     }
   }, [onVideoRef, onAudioRef]);
 
+  const glowClass = EMOTION_GLOW[currentEmotion] ?? EMOTION_GLOW.neutral;
+  const borderClass = EMOTION_BORDER[currentEmotion] ?? EMOTION_BORDER.neutral;
+
   return (
-    <Card className="relative overflow-hidden bg-black aspect-video w-full max-w-2xl mx-auto rounded-2xl">
+    <Card
+      className={`relative overflow-hidden bg-black aspect-video w-full max-w-2xl mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
+    >
       {/* Simli 아바타 비디오 */}
       <video
         ref={videoRef}

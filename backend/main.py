@@ -252,6 +252,7 @@ class ConversationSession:
             async for audio_chunk in self.tts_service.synthesize_speech_streaming(
                 text=llm_response.text,
                 emotion_mapping=emotion_mapping,
+                voice_direction=llm_response.voice_direction,
             ):
                 audio_b64 = base64.b64encode(audio_chunk).decode("utf-8")
                 await self.send_message(

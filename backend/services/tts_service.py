@@ -7,7 +7,7 @@ import httpx
 
 from backend.config import settings
 from backend.models.schemas import EmotionMapping
-from backend.services.emotion_mapper import apply_audio_tag
+from backend.services.emotion_mapper import build_tagged_text
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class ElevenLabsTTSService:
     def __init__(self):
         self.voice_id = settings.ELEVENLABS_VOICE_ID
         self.api_key = settings.ELEVENLABS_API_KEY
-        self.model_id = "eleven_multilingual_v2"
+        self.model_id = settings.ELEVENLABS_MODEL_ID
 
     def _is_api_key_valid(self) -> bool:
         """API 키가 유효한지 확인합니다."""
@@ -31,6 +31,7 @@ class ElevenLabsTTSService:
         self,
         text: str,
         emotion_mapping: Optional[EmotionMapping] = None,
+        voice_direction: str = "",
         chunk_size: int = 4096,
     ) -> AsyncGenerator[bytes, None]:
         """
@@ -46,19 +47,23 @@ class ElevenLabsTTSService:
             return
 
         try:
-            # 감정 Audio Tag 적용
-            if emotion_mapping and emotion_mapping.elevenlabs_audio_tag:
-                tagged_text = apply_audio_tag(
-                    text, emotion_mapping.elevenlabs_audio_tag
+            # 감정 Audio Tag + voice_direction 적용
+            if emotion_mapping:
+                tagged_text = build_tagged_text(
+                    text,
+                    emotion_mapping.elevenlabs_audio_tag,
+                    voice_direction,
                 )
             else:
                 tagged_text = text
 
             stability = 0.5
             style = 0.0
+            speed = 1.0
             if emotion_mapping:
                 stability = emotion_mapping.voice_stability
                 style = emotion_mapping.voice_style
+                speed = emotion_mapping.voice_speed
 
             url = (
                 f"{ELEVENLABS_BASE_URL}/text-to-speech/"
@@ -76,13 +81,15 @@ class ElevenLabsTTSService:
                     "similarity_boost": 0.75,
                     "style": style,
                     "use_speaker_boost": True,
+                    "speed": speed,
                 },
             }
 
             logger.info(
                 f"[TTS] 요청: voice={self.voice_id}, "
+                f"model={self.model_id}, speed={speed}, "
                 f"text_len={len(tagged_text)}, "
-                f"text_preview={tagged_text[:50]!r}"
+                f"text_preview={tagged_text[:80]!r}"
             )
 
             async with httpx.AsyncClient(timeout=30.0) as client:

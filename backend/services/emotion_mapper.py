@@ -9,56 +9,84 @@ EMOTION_MAP: dict[EmotionType, EmotionMapping] = {
         elevenlabs_audio_tag="",
         voice_stability=0.5,
         voice_style=0.0,
+        voice_speed=1.0,
     ),
     EmotionType.HAPPY: EmotionMapping(
         simli_emotion_id="happy",
         elevenlabs_audio_tag="[cheerfully]",
         voice_stability=0.4,
         voice_style=0.6,
+        voice_speed=1.1,
     ),
     EmotionType.SAD: EmotionMapping(
         simli_emotion_id="sad",
         elevenlabs_audio_tag="[sorrowful]",
         voice_stability=0.3,
         voice_style=0.5,
+        voice_speed=0.85,
     ),
     EmotionType.ANGRY: EmotionMapping(
         simli_emotion_id="angry",
         elevenlabs_audio_tag="[frustrated]",
         voice_stability=0.35,
         voice_style=0.7,
+        voice_speed=1.1,
     ),
     EmotionType.SURPRISED: EmotionMapping(
         simli_emotion_id="surprised",
         elevenlabs_audio_tag="[gasps]",
         voice_stability=0.3,
         voice_style=0.6,
+        voice_speed=1.15,
     ),
     EmotionType.THINKING: EmotionMapping(
         simli_emotion_id="thinking",
         elevenlabs_audio_tag="[pauses]",
         voice_stability=0.6,
         voice_style=0.2,
+        voice_speed=0.9,
     ),
     EmotionType.ANXIOUS: EmotionMapping(
         simli_emotion_id="anxious",
         elevenlabs_audio_tag="[nervously]",
         voice_stability=0.3,
         voice_style=0.5,
+        voice_speed=1.1,
     ),
     EmotionType.EMPATHETIC: EmotionMapping(
         simli_emotion_id="empathetic",
         elevenlabs_audio_tag="[calm]",
         voice_stability=0.4,
         voice_style=0.4,
+        voice_speed=0.9,
     ),
+}
+
+# 한국어 voice_direction → 영어 ElevenLabs 오디오 태그 매핑
+VOICE_DIRECTION_TAG_MAP: dict[str, str] = {
+    "조용히": "[quietly]",
+    "울먹이며": "[tearfully]",
+    "밝게": "[cheerfully]",
+    "차분하게": "[calm]",
+    "힘차게": "[energetically]",
+    "부드럽게": "[softly]",
+    "따뜻하게": "[warmly]",
+    "단호하게": "[firmly]",
+    "긴장하며": "[nervously]",
+    "놀라며": "[gasps]",
+    "생각하며": "[thoughtfully]",
+    "걱정하며": "[worriedly]",
+    "슬프게": "[sorrowful]",
+    "화나며": "[frustrated]",
+    "기쁘게": "[cheerfully]",
+    "설레며": "[excited]",
 }
 
 
 def get_emotion_mapping(emotion: EmotionType, intensity: float = 0.5) -> EmotionMapping:
     """
     감정 타입과 강도에 따라 매핑 결과를 반환합니다.
-    intensity에 따라 voice_stability를 동적으로 조절합니다.
+    intensity에 따라 voice_stability, voice_style, voice_speed를 동적으로 조절합니다.
     """
     mapping = EMOTION_MAP.get(emotion, EMOTION_MAP[EmotionType.NEUTRAL])
 
@@ -66,16 +94,40 @@ def get_emotion_mapping(emotion: EmotionType, intensity: float = 0.5) -> Emotion
     adjusted_stability = max(0.1, mapping.voice_stability - (intensity * 0.2))
     adjusted_style = min(1.0, mapping.voice_style + (intensity * 0.2))
 
+    # speed: intensity가 높을수록 기본 속도에서의 편차를 강화
+    base_speed = mapping.voice_speed
+    speed_deviation = base_speed - 1.0
+    adjusted_speed = 1.0 + (speed_deviation * (0.5 + intensity * 0.5))
+    adjusted_speed = max(0.7, min(1.2, round(adjusted_speed, 2)))
+
     return EmotionMapping(
         simli_emotion_id=mapping.simli_emotion_id,
         elevenlabs_audio_tag=mapping.elevenlabs_audio_tag,
         voice_stability=adjusted_stability,
         voice_style=adjusted_style,
+        voice_speed=adjusted_speed,
     )
 
 
-def apply_audio_tag(text: str, audio_tag: str) -> str:
-    """텍스트 앞에 ElevenLabs Audio Tag를 삽입합니다."""
+def build_tagged_text(text: str, audio_tag: str, voice_direction: str = "") -> str:
+    """
+    ElevenLabs v3용 태그가 포함된 텍스트를 생성합니다.
+    감정 오디오 태그와 LLM의 voice_direction을 결합합니다.
+    """
+    tags = []
+
+    # 감정 매핑 기반 오디오 태그
     if audio_tag:
-        return f"{audio_tag} {text}"
+        tags.append(audio_tag)
+
+    # LLM의 voice_direction을 영어 태그로 변환
+    if voice_direction:
+        direction = voice_direction.strip()
+        mapped = VOICE_DIRECTION_TAG_MAP.get(direction)
+        if mapped and mapped not in tags:
+            tags.append(mapped)
+
+    prefix = " ".join(tags)
+    if prefix:
+        return f"{prefix} {text}"
     return text
