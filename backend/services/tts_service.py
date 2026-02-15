@@ -3,7 +3,7 @@
 import logging
 from typing import AsyncGenerator, Optional
 
-from elevenlabs import AsyncElevenLabs
+from elevenlabs import AsyncElevenLabs, VoiceSettings
 from elevenlabs.core import ApiError
 
 from backend.config import settings
@@ -58,12 +58,12 @@ class ElevenLabsTTSService:
                 voice_id=self.voice_id,
                 text=tagged_text,
                 model_id=self.model_id,
-                voice_settings={
-                    "stability": stability,
-                    "similarity_boost": 0.75,
-                    "style": style,
-                    "use_speaker_boost": True,
-                },
+                voice_settings=VoiceSettings(
+                    stability=stability,
+                    similarity_boost=0.75,
+                    style=style,
+                    use_speaker_boost=True,
+                ),
                 output_format="pcm_16000",
             )
 
