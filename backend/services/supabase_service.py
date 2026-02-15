@@ -17,14 +17,23 @@ def _get_client():
     if _supabase_client is not None:
         return _supabase_client
 
+    # #region agent log
+    logger.info(f"[DEBUG] Supabase 환경변수 체크: URL={settings.SUPABASE_URL[:30] if settings.SUPABASE_URL else 'EMPTY'}..., KEY_LENGTH={len(settings.SUPABASE_SERVICE_ROLE_KEY) if settings.SUPABASE_SERVICE_ROLE_KEY else 0}")
+    # #endregion
+
     if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
+        logger.warning("[DEBUG] Supabase 환경변수 누락")
         return None
 
     if settings.SUPABASE_URL.startswith("your_"):
+        logger.warning("[DEBUG] Supabase URL이 플레이스홀더")
         return None
 
     try:
         from supabase import create_client
+        # #region agent log
+        logger.info(f"[DEBUG] Supabase 클라이언트 생성 시도 - URL: {settings.SUPABASE_URL[:50]}...")
+        # #endregion
         _supabase_client = create_client(
             settings.SUPABASE_URL,
             settings.SUPABASE_SERVICE_ROLE_KEY,
@@ -32,6 +41,9 @@ def _get_client():
         logger.info("Supabase 클라이언트 초기화 완료")
         return _supabase_client
     except Exception as e:
+        # #region agent log
+        logger.error(f"[DEBUG] Supabase 초기화 예외 상세: type={type(e).__name__}, msg={str(e)}, url_valid={settings.SUPABASE_URL.startswith('http')}")
+        # #endregion
         logger.warning(f"Supabase 클라이언트 초기화 실패: {e}")
         return None
 
