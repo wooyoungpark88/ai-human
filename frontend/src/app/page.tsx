@@ -340,7 +340,7 @@ export default function Home() {
         <div className="flex-1 flex flex-col items-center gap-4">
           <AvatarView
             vrm={avatar.vrmRef.current}
-            controllers={avatar.controllersRef.current}
+            controllers={avatar.controllers}
             isLoading={avatar.isLoading}
             isInitialized={avatar.isInitialized}
             error={avatar.error}

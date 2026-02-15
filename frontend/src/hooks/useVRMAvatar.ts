@@ -17,19 +17,24 @@ export interface VRMAvatarControllers {
   idle: IdleAnimationController | null;
 }
 
+const EMPTY_CONTROLLERS: VRMAvatarControllers = {
+  expression: null,
+  lipSync: null,
+  blink: null,
+  idle: null,
+};
+
 export function useVRMAvatar() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // controllers를 state로 관리하여 React 리렌더 보장
+  const [controllers, setControllers] = useState<VRMAvatarControllers>(EMPTY_CONTROLLERS);
 
   const vrmRef = useRef<VRM | null>(null);
   const audioPlayerRef = useRef<AudioStreamPlayer | null>(null);
-  const controllersRef = useRef<VRMAvatarControllers>({
-    expression: null,
-    lipSync: null,
-    blink: null,
-    idle: null,
-  });
+  // 내부 ref도 유지 (setEmotion 등에서 최신 값 접근용)
+  const controllersRef = useRef<VRMAvatarControllers>(EMPTY_CONTROLLERS);
 
   const initialize = useCallback(async () => {
     try {
@@ -63,12 +68,14 @@ export function useVRMAvatar() {
 
       // 컨트롤러 초기화
       const analyser = audioPlayer.getAnalyser();
-      controllersRef.current = {
+      const newControllers: VRMAvatarControllers = {
         expression: new ExpressionController(vrm),
         lipSync: analyser ? new LipSyncController(vrm, analyser) : null,
         blink: new BlinkController(vrm),
         idle: new IdleAnimationController(vrm),
       };
+      controllersRef.current = newControllers;
+      setControllers(newControllers); // React 리렌더 트리거
 
       // 사용 가능한 표정 로깅
       if (vrm.expressionManager) {
@@ -103,12 +110,8 @@ export function useVRMAvatar() {
     controllersRef.current.lipSync?.dispose();
     controllersRef.current.blink?.dispose();
     controllersRef.current.idle?.dispose();
-    controllersRef.current = {
-      expression: null,
-      lipSync: null,
-      blink: null,
-      idle: null,
-    };
+    controllersRef.current = EMPTY_CONTROLLERS;
+    setControllers(EMPTY_CONTROLLERS);
 
     // 오디오 정리
     audioPlayerRef.current?.dispose();
@@ -144,6 +147,6 @@ export function useVRMAvatar() {
     setEmotion,
     close,
     vrmRef,
-    controllersRef,
+    controllers,
   };
 }

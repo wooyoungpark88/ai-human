@@ -30,14 +30,14 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
   useFrame((state, delta) => {
     const elapsed = state.clock.elapsedTime;
 
-    // VRM 내부 업데이트 (스프링본 등)
-    vrm.update(delta);
-
-    // 각 컨트롤러 업데이트
+    // 컨트롤러가 먼저 setValue() 호출
     controllers.blink?.update(delta, elapsed);
     controllers.idle?.update(delta, elapsed);
     controllers.expression?.update(delta);
     controllers.lipSync?.update(delta);
+
+    // vrm.update()가 마지막에 호출되어야 현재 프레임의 expression 값이 즉시 적용됨
+    vrm.update(delta);
   });
 
   return null;
