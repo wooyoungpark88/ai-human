@@ -8,11 +8,8 @@ export const API_URL =
 export const WS_URL =
   process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws/conversation";
 
-/** Simli API Key (클라이언트에서 사용) */
-export const SIMLI_API_KEY = process.env.NEXT_PUBLIC_SIMLI_API_KEY || "";
-
-/** Simli Face ID */
-export const SIMLI_FACE_ID = process.env.NEXT_PUBLIC_SIMLI_FACE_ID || "";
+/** VRM 아바타 모델 경로 */
+export const VRM_MODEL_PATH = "/models/avatar.vrm";
 
 /** 오디오 설정 */
 export const AUDIO_CONFIG = {

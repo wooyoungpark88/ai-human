@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useMicrophone } from "@/hooks/useMicrophone";
-import { useSimli } from "@/hooks/useSimli";
+import { useVRMAvatar } from "@/hooks/useVRMAvatar";
 import type {
   ChatMessage,
   EmotionType,
@@ -47,13 +47,11 @@ export default function Home() {
   const [userName, setUserName] = useState("");
 
   // Refs
-  const videoElRef = useRef<HTMLVideoElement | null>(null);
-  const audioElRef = useRef<HTMLAudioElement | null>(null);
   const messageIdRef = useRef(0);
   const partialTranscriptRef = useRef("");
 
-  // Simli 아바타 훅
-  const simli = useSimli();
+  // VRM 아바타 훅
+  const avatar = useVRMAvatar();
 
   // 사용자 정보 로드 (쿠키 세션)
   useEffect(() => {
@@ -118,13 +116,17 @@ export default function Home() {
 
         case "audio":
           if (message.audio_data && !message.is_final) {
-            simli.sendBase64Audio(message.audio_data);
+            avatar.sendBase64Audio(message.audio_data);
           }
           break;
 
         case "emotion":
           if (message.emotion) {
             setCurrentEmotion(message.emotion as EmotionType);
+            avatar.setEmotion(
+              message.emotion as EmotionType,
+              message.intensity ?? 0.5
+            );
           }
           if (message.intensity !== undefined) {
             setEmotionIntensity(message.intensity);
@@ -161,7 +163,7 @@ export default function Home() {
           break;
       }
     },
-    [simli]
+    [avatar]
   );
 
   // WebSocket 훅
@@ -179,24 +181,22 @@ export default function Home() {
     // 1. WebSocket 연결
     ws.connect();
 
-    // 2. Simli 아바타 초기화
-    if (videoElRef.current && audioElRef.current) {
-      await simli.initialize(videoElRef.current, audioElRef.current);
-    }
+    // 2. VRM 아바타 초기화
+    await avatar.initialize();
 
     setIsSessionActive(true);
-  }, [ws, simli]);
+  }, [ws, avatar]);
 
   // 세션 종료
   const handleStopSession = useCallback(() => {
     mic.stopRecording();
     ws.sendMessage({ type: "stop" });
     ws.disconnect();
-    simli.close();
+    avatar.close();
     setIsSessionActive(false);
     setIsThinking(false);
     setPartialTranscript("");
-  }, [mic, ws, simli]);
+  }, [mic, ws, avatar]);
 
   // 프로필 변경
   const handleProfileChange = useCallback(
@@ -339,15 +339,11 @@ export default function Home() {
         {/* 왼쪽: 아바타 + 마이크 */}
         <div className="flex-1 flex flex-col items-center gap-4">
           <AvatarView
-            onVideoRef={(el) => {
-              videoElRef.current = el;
-            }}
-            onAudioRef={(el) => {
-              audioElRef.current = el;
-            }}
-            isLoading={simli.isLoading}
-            isInitialized={simli.isInitialized}
-            error={simli.error}
+            vrm={avatar.vrmRef.current}
+            controllers={avatar.controllersRef.current}
+            isLoading={avatar.isLoading}
+            isInitialized={avatar.isInitialized}
+            error={avatar.error}
             currentEmotion={currentEmotion}
             emotionIntensity={emotionIntensity}
           />

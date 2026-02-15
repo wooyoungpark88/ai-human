@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
+import { VRMScene } from "@/components/VRMScene";
+import type { VRM } from "@pixiv/three-vrm";
 import type { EmotionType } from "@/lib/types";
+import type { VRMAvatarControllers } from "@/hooks/useVRMAvatar";
 
 const EMOTION_GLOW: Record<string, string> = {
   neutral: "shadow-none",
@@ -27,8 +29,8 @@ const EMOTION_BORDER: Record<string, string> = {
 };
 
 interface AvatarViewProps {
-  onVideoRef?: (video: HTMLVideoElement) => void;
-  onAudioRef?: (audio: HTMLAudioElement) => void;
+  vrm: VRM | null;
+  controllers: VRMAvatarControllers;
   isLoading?: boolean;
   isInitialized?: boolean;
   error?: string | null;
@@ -37,26 +39,13 @@ interface AvatarViewProps {
 }
 
 export function AvatarView({
-  onVideoRef,
-  onAudioRef,
+  vrm,
+  controllers,
   isLoading = false,
   isInitialized = false,
   error,
   currentEmotion = "neutral",
-  emotionIntensity = 0.5,
 }: AvatarViewProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current && onVideoRef) {
-      onVideoRef(videoRef.current);
-    }
-    if (audioRef.current && onAudioRef) {
-      onAudioRef(audioRef.current);
-    }
-  }, [onVideoRef, onAudioRef]);
-
   const glowClass = EMOTION_GLOW[currentEmotion] ?? EMOTION_GLOW.neutral;
   const borderClass = EMOTION_BORDER[currentEmotion] ?? EMOTION_BORDER.neutral;
 
@@ -64,16 +53,10 @@ export function AvatarView({
     <Card
       className={`relative overflow-hidden bg-black aspect-video w-full max-w-2xl mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
     >
-      {/* Simli 아바타 비디오 */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        className="w-full h-full object-cover"
-      />
-
-      {/* 숨겨진 오디오 요소 (Simli 출력용) */}
-      <audio ref={audioRef} autoPlay className="hidden" />
+      {/* VRM 아바타 */}
+      {isInitialized && vrm && (
+        <VRMScene vrm={vrm} controllers={controllers} isLoading={isLoading} />
+      )}
 
       {/* 로딩 오버레이 */}
       {isLoading && (
