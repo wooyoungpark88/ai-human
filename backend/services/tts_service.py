@@ -1,10 +1,9 @@
-"""ElevenLabs 스트리밍 TTS 서비스"""
+"""ElevenLabs 스트리밍 TTS 서비스 (httpx 직접 호출)"""
 
 import logging
 from typing import AsyncGenerator, Optional
 
-from elevenlabs import AsyncElevenLabs, VoiceSettings
-from elevenlabs.core import ApiError
+import httpx
 
 from backend.config import settings
 from backend.models.schemas import EmotionMapping
@@ -12,18 +11,20 @@ from backend.services.emotion_mapper import apply_audio_tag
 
 logger = logging.getLogger(__name__)
 
+ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1"
+
 
 class ElevenLabsTTSService:
-    """ElevenLabs API 기반 실시간 TTS 서비스"""
+    """ElevenLabs REST API 직접 호출 기반 실시간 TTS 서비스"""
 
     def __init__(self):
-        self.client = AsyncElevenLabs(api_key=settings.ELEVENLABS_API_KEY)
         self.voice_id = settings.ELEVENLABS_VOICE_ID
-        self.model_id = "eleven_multilingual_v2"  # 다국어 지원 모델
+        self.api_key = settings.ELEVENLABS_API_KEY
+        self.model_id = "eleven_multilingual_v2"
 
     def _is_api_key_valid(self) -> bool:
         """API 키가 유효한지 확인합니다."""
-        key = settings.ELEVENLABS_API_KEY
+        key = self.api_key
         return bool(key) and not key.startswith("your_") and len(key) > 10
 
     async def synthesize_speech_streaming(
@@ -34,6 +35,7 @@ class ElevenLabsTTSService:
     ) -> AsyncGenerator[bytes, None]:
         """
         텍스트를 음성으로 변환하여 청크 단위로 스트리밍합니다.
+        httpx를 사용하여 ElevenLabs REST API를 직접 호출합니다.
         """
         if not self._is_api_key_valid():
             logger.warning("[TTS] API 키 미설정 → 스트리밍 스킵")
@@ -58,51 +60,55 @@ class ElevenLabsTTSService:
                 stability = emotion_mapping.voice_stability
                 style = emotion_mapping.voice_style
 
-            voice_settings = VoiceSettings(
-                stability=stability,
-                similarity_boost=0.75,
-                style=style,
-                use_speaker_boost=True,
+            url = (
+                f"{ELEVENLABS_BASE_URL}/text-to-speech/"
+                f"{self.voice_id}/stream?output_format=pcm_16000"
+            )
+            headers = {
+                "xi-api-key": self.api_key,
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "text": tagged_text,
+                "model_id": self.model_id,
+                "voice_settings": {
+                    "stability": stability,
+                    "similarity_boost": 0.75,
+                    "style": style,
+                    "use_speaker_boost": True,
+                },
+            }
+
+            logger.info(
+                f"[TTS] 요청: voice={self.voice_id}, "
+                f"text_len={len(tagged_text)}, "
+                f"text_preview={tagged_text[:50]!r}"
             )
 
-            logger.info(f"[TTS] 요청: voice={self.voice_id}, text_len={len(tagged_text)}")
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                async with client.stream(
+                    "POST", url, json=payload, headers=headers
+                ) as response:
+                    if response.status_code != 200:
+                        body = await response.aread()
+                        logger.error(
+                            f"[TTS] API 오류: status={response.status_code}, "
+                            f"body={body.decode('utf-8', errors='replace')}"
+                        )
+                        return
 
-            # convert_as_stream → async iterator 반환
-            try:
-                audio_response = await self.client.text_to_speech.convert_as_stream(
-                    voice_id=self.voice_id,
-                    text=tagged_text,
-                    model_id=self.model_id,
-                    voice_settings=voice_settings,
-                    output_format="pcm_16000",
-                )
-            except AttributeError:
-                # SDK 버전에 따라 convert_as_stream이 없을 수 있음
-                logger.info("[TTS] convert_as_stream 없음, convert 사용")
-                audio_response = await self.client.text_to_speech.convert(
-                    voice_id=self.voice_id,
-                    text=tagged_text,
-                    model_id=self.model_id,
-                    voice_settings=voice_settings,
-                    output_format="pcm_16000",
-                )
+                    chunk_count = 0
+                    async for chunk in response.aiter_bytes(chunk_size):
+                        if chunk:
+                            chunk_count += 1
+                            yield chunk
 
-            # 반환값이 bytes인 경우 (비스트리밍)
-            if isinstance(audio_response, bytes):
-                logger.info(f"[TTS] bytes 반환: {len(audio_response)} bytes")
-                for i in range(0, len(audio_response), chunk_size):
-                    yield audio_response[i : i + chunk_size]
-                return
+                    logger.info(f"[TTS] 스트리밍 완료: {chunk_count} chunks")
 
-            # async iterator인 경우
-            chunk_count = 0
-            async for chunk in audio_response:
-                if chunk:
-                    chunk_count += 1
-                    yield chunk
-            logger.info(f"[TTS] 스트리밍 완료: {chunk_count} chunks")
-
-        except ApiError as e:
-            logger.error(f"ElevenLabs API 오류: status={e.status_code}, body={e.body}")
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                f"[TTS] HTTP 오류: status={e.response.status_code}, "
+                f"body={e.response.text}"
+            )
         except Exception as e:
-            logger.error(f"TTS 합성 오류: {type(e).__name__}: {e}")
+            logger.error(f"[TTS] 합성 오류: {type(e).__name__}: {e}")
