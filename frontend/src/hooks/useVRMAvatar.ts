@@ -68,9 +68,10 @@ export function useVRMAvatar() {
 
       // 컨트롤러 초기화
       const analyser = audioPlayer.getAnalyser();
+      const expressionCtrl = new ExpressionController(vrm);
       const newControllers: VRMAvatarControllers = {
-        expression: new ExpressionController(vrm),
-        lipSync: analyser ? new LipSyncController(vrm, analyser) : null,
+        expression: expressionCtrl,
+        lipSync: analyser ? new LipSyncController(vrm, analyser, expressionCtrl) : null,
         blink: new BlinkController(vrm),
         idle: new IdleAnimationController(vrm),
       };

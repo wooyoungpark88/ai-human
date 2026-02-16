@@ -34,9 +34,9 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
   useFrame((state, delta) => {
     const elapsed = state.clock.elapsedTime;
 
-    // 컨트롤러가 먼저 setValue() 호출
     controllers.blink?.update(delta, elapsed);
     controllers.idle?.update(delta, elapsed);
+    controllers.expression?.updateIdle(delta, elapsed);
     controllers.expression?.update(delta);
     controllers.lipSync?.update(delta);
 
