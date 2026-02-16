@@ -11,8 +11,12 @@ interface VRMCharacterProps {
 }
 
 function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
-  const { scene } = useThree();
+  const { scene, camera } = useThree();
   const addedRef = useRef(false);
+
+  useEffect(() => {
+    camera.lookAt(0, 1.3, 0);
+  }, [camera]);
 
   useEffect(() => {
     if (vrm.scene && !addedRef.current) {
@@ -52,7 +56,7 @@ interface VRMCanvasProps {
 export default function VRMCanvas({ vrm, controllers }: VRMCanvasProps) {
   return (
     <Canvas
-      camera={{ position: [0, 1.35, 0.8], fov: 35, near: 0.1, far: 100 }}
+      camera={{ position: [0, 1.3, 0.8], fov: 30, near: 0.1, far: 100 }}
       dpr={[1, 1.5]}
       style={{ width: "100%", height: "100%" }}
       gl={{ antialias: true, alpha: true }}
