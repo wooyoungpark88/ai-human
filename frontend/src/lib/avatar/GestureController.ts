@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import type { VRM } from "@pixiv/three-vrm";
 import type { EmotionType } from "@/lib/types";
 
@@ -114,6 +115,9 @@ function lerpPose(a: ArmPose, b: ArmPose, t: number): ArmPose {
  * - 감정에 따른 팔/어깨 포즈 변화
  * - 부드러운 전환 애니메이션
  * - 미세 떨림/움직임으로 생동감
+ *
+ * normalized bone에 quaternion을 직접 설정하여 vrm.update()가
+ * normalized→raw 변환을 자동 처리하도록 함.
  */
 export class GestureController {
   private vrm: VRM;
@@ -124,6 +128,9 @@ export class GestureController {
 
   // 미세 움직임 (손이 완전히 정지하지 않게)
   private fidgetPhase = Math.random() * Math.PI * 2;
+
+  // 재사용 헬퍼 (GC 회피)
+  private _euler = new THREE.Euler();
 
   constructor(vrm: VRM) {
     this.vrm = vrm;
@@ -139,14 +146,26 @@ export class GestureController {
     this.targetPose = lerpPose(neutralGesture, gesture, blend);
   }
 
+  /** normalized bone node의 quaternion을 Euler(x, 0, z) 기반으로 설정 */
+  private _setBoneRotation(
+    bone: THREE.Object3D | null,
+    x: number,
+    y: number,
+    z: number,
+  ): void {
+    if (!bone) return;
+    this._euler.set(x, y, z, "XYZ");
+    bone.quaternion.setFromEuler(this._euler);
+  }
+
   update(delta: number, elapsedTime: number): void {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
 
     if (!this.loggedOnce) {
       this.loggedOnce = true;
-      const lua = humanoid.getRawBoneNode("leftUpperArm");
-      const rua = humanoid.getRawBoneNode("rightUpperArm");
+      const lua = humanoid.getNormalizedBoneNode("leftUpperArm");
+      const rua = humanoid.getNormalizedBoneNode("rightUpperArm");
       console.log("[Gesture] leftUpperArm bone:", lua ? "found" : "NULL",
         "| rightUpperArm bone:", rua ? "found" : "NULL",
         "| target L.z:", this.targetPose.leftUpperArm.z,
@@ -166,74 +185,60 @@ export class GestureController {
 
     const smoothFactor = 1.0 - Math.exp(-this.transitionSpeed * delta);
 
+    // --- 부드러운 전환 계산 ---
+    this.currentPose.leftShoulder.z +=
+      (this.targetPose.leftShoulder.z - this.currentPose.leftShoulder.z) * smoothFactor;
+    this.currentPose.leftUpperArm.z +=
+      (this.targetPose.leftUpperArm.z - this.currentPose.leftUpperArm.z) * smoothFactor;
+    this.currentPose.leftUpperArm.x +=
+      (this.targetPose.leftUpperArm.x - this.currentPose.leftUpperArm.x) * smoothFactor;
+    this.currentPose.leftLowerArm.z +=
+      (this.targetPose.leftLowerArm.z - this.currentPose.leftLowerArm.z) * smoothFactor;
+    this.currentPose.leftLowerArm.x +=
+      (this.targetPose.leftLowerArm.x - this.currentPose.leftLowerArm.x) * smoothFactor;
+    this.currentPose.rightShoulder.z +=
+      (this.targetPose.rightShoulder.z - this.currentPose.rightShoulder.z) * smoothFactor;
+    this.currentPose.rightUpperArm.z +=
+      (this.targetPose.rightUpperArm.z - this.currentPose.rightUpperArm.z) * smoothFactor;
+    this.currentPose.rightUpperArm.x +=
+      (this.targetPose.rightUpperArm.x - this.currentPose.rightUpperArm.x) * smoothFactor;
+    this.currentPose.rightLowerArm.z +=
+      (this.targetPose.rightLowerArm.z - this.currentPose.rightLowerArm.z) * smoothFactor;
+    this.currentPose.rightLowerArm.x +=
+      (this.targetPose.rightLowerArm.x - this.currentPose.rightLowerArm.x) * smoothFactor;
+
+    // --- normalized bone에 quaternion으로 설정 ---
     // 왼쪽
-    const leftShoulder = humanoid.getRawBoneNode("leftShoulder");
-    if (leftShoulder) {
-      this.currentPose.leftShoulder.z +=
-        (this.targetPose.leftShoulder.z - this.currentPose.leftShoulder.z) *
-        smoothFactor;
-      leftShoulder.rotation.z = this.currentPose.leftShoulder.z;
-    }
-
-    const leftUpperArm = humanoid.getRawBoneNode("leftUpperArm");
-    if (leftUpperArm) {
-      this.currentPose.leftUpperArm.z +=
-        (this.targetPose.leftUpperArm.z - this.currentPose.leftUpperArm.z) *
-        smoothFactor;
-      this.currentPose.leftUpperArm.x +=
-        (this.targetPose.leftUpperArm.x - this.currentPose.leftUpperArm.x) *
-        smoothFactor;
-      leftUpperArm.rotation.z =
-        this.currentPose.leftUpperArm.z + breathIntensity + fidgetL;
-      leftUpperArm.rotation.x = this.currentPose.leftUpperArm.x;
-    }
-
-    const leftLowerArm = humanoid.getRawBoneNode("leftLowerArm");
-    if (leftLowerArm) {
-      this.currentPose.leftLowerArm.z +=
-        (this.targetPose.leftLowerArm.z - this.currentPose.leftLowerArm.z) *
-        smoothFactor;
-      this.currentPose.leftLowerArm.x +=
-        (this.targetPose.leftLowerArm.x - this.currentPose.leftLowerArm.x) *
-        smoothFactor;
-      leftLowerArm.rotation.z = this.currentPose.leftLowerArm.z + fidgetL * 0.5;
-      leftLowerArm.rotation.x = this.currentPose.leftLowerArm.x;
-    }
+    this._setBoneRotation(
+      humanoid.getNormalizedBoneNode("leftShoulder"),
+      0, 0, this.currentPose.leftShoulder.z,
+    );
+    this._setBoneRotation(
+      humanoid.getNormalizedBoneNode("leftUpperArm"),
+      this.currentPose.leftUpperArm.x, 0,
+      this.currentPose.leftUpperArm.z + breathIntensity + fidgetL,
+    );
+    this._setBoneRotation(
+      humanoid.getNormalizedBoneNode("leftLowerArm"),
+      this.currentPose.leftLowerArm.x, 0,
+      this.currentPose.leftLowerArm.z + fidgetL * 0.5,
+    );
 
     // 오른쪽
-    const rightShoulder = humanoid.getRawBoneNode("rightShoulder");
-    if (rightShoulder) {
-      this.currentPose.rightShoulder.z +=
-        (this.targetPose.rightShoulder.z - this.currentPose.rightShoulder.z) *
-        smoothFactor;
-      rightShoulder.rotation.z = this.currentPose.rightShoulder.z;
-    }
-
-    const rightUpperArm = humanoid.getRawBoneNode("rightUpperArm");
-    if (rightUpperArm) {
-      this.currentPose.rightUpperArm.z +=
-        (this.targetPose.rightUpperArm.z - this.currentPose.rightUpperArm.z) *
-        smoothFactor;
-      this.currentPose.rightUpperArm.x +=
-        (this.targetPose.rightUpperArm.x - this.currentPose.rightUpperArm.x) *
-        smoothFactor;
-      rightUpperArm.rotation.z =
-        this.currentPose.rightUpperArm.z - breathIntensity + fidgetR;
-      rightUpperArm.rotation.x = this.currentPose.rightUpperArm.x;
-    }
-
-    const rightLowerArm = humanoid.getRawBoneNode("rightLowerArm");
-    if (rightLowerArm) {
-      this.currentPose.rightLowerArm.z +=
-        (this.targetPose.rightLowerArm.z - this.currentPose.rightLowerArm.z) *
-        smoothFactor;
-      this.currentPose.rightLowerArm.x +=
-        (this.targetPose.rightLowerArm.x - this.currentPose.rightLowerArm.x) *
-        smoothFactor;
-      rightLowerArm.rotation.z =
-        this.currentPose.rightLowerArm.z + fidgetR * 0.5;
-      rightLowerArm.rotation.x = this.currentPose.rightLowerArm.x;
-    }
+    this._setBoneRotation(
+      humanoid.getNormalizedBoneNode("rightShoulder"),
+      0, 0, this.currentPose.rightShoulder.z,
+    );
+    this._setBoneRotation(
+      humanoid.getNormalizedBoneNode("rightUpperArm"),
+      this.currentPose.rightUpperArm.x, 0,
+      this.currentPose.rightUpperArm.z - breathIntensity + fidgetR,
+    );
+    this._setBoneRotation(
+      humanoid.getNormalizedBoneNode("rightLowerArm"),
+      this.currentPose.rightLowerArm.x, 0,
+      this.currentPose.rightLowerArm.z + fidgetR * 0.5,
+    );
   }
 
   dispose(): void {
@@ -250,9 +255,9 @@ export class GestureController {
     ] as const;
 
     for (const boneName of bones) {
-      const bone = humanoid.getRawBoneNode(boneName);
+      const bone = humanoid.getNormalizedBoneNode(boneName);
       if (bone) {
-        bone.rotation.set(0, 0, 0);
+        bone.quaternion.identity();
       }
     }
 

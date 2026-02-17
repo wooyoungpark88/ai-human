@@ -41,18 +41,16 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
     }
     const elapsed = state.clock.elapsedTime;
 
-    // 1. normalized bone 컨트롤러 (표정/눈깜빡임/립싱크)
+    // 1. 모든 컨트롤러가 normalized bone/expression 설정
+    controllers.idle?.update(delta, elapsed);
+    controllers.gesture?.update(delta, elapsed);
     controllers.blink?.update(delta, elapsed);
     controllers.expression?.updateIdle(delta, elapsed);
     controllers.expression?.update(delta);
     controllers.lipSync?.update(delta);
 
-    // 2. vrm.update() — normalized→raw bone 변환 + 스프링본
+    // 2. vrm.update() — normalized→raw bone 변환 + 스프링본 + expression 적용
     vrm.update(delta);
-
-    // 3. raw bone 컨트롤러 (idle/gesture) — vrm.update() 이후에 raw bone 직접 덮어쓰기
-    controllers.idle?.update(delta, elapsed);
-    controllers.gesture?.update(delta, elapsed);
   });
 
   return null;

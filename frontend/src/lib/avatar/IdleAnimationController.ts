@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import type { VRM } from "@pixiv/three-vrm";
 
 /**
@@ -7,6 +8,9 @@ import type { VRM } from "@pixiv/three-vrm";
  * - 체중 이동 (상체 미세 좌우)
  * - 경청 시 고개끄덕임
  * - 간헐적 큰 동작 (자세 바꾸기)
+ *
+ * normalized bone에 quaternion을 직접 설정하여 vrm.update()가
+ * normalized→raw 변환을 자동 처리하도록 함.
  */
 export class IdleAnimationController {
   private vrm: VRM;
@@ -20,6 +24,9 @@ export class IdleAnimationController {
   private shiftInterval = 8 + Math.random() * 7; // 8~15초마다
   private shiftTarget = 0;
   private shiftCurrent = 0;
+
+  // 재사용 헬퍼 (GC 회피)
+  private _euler = new THREE.Euler();
 
   constructor(vrm: VRM) {
     this.vrm = vrm;
@@ -38,7 +45,7 @@ export class IdleAnimationController {
     if (!humanoid) return;
 
     // --- 머리 움직임 (다중 주파수 합성 → 자연스러운 불규칙 움직임) ---
-    const headBone = humanoid.getRawBoneNode("head");
+    const headBone = humanoid.getNormalizedBoneNode("head");
     if (headBone) {
       // 기본 끄덕임 (상하)
       let nodX =
@@ -77,23 +84,24 @@ export class IdleAnimationController {
         }
       }
 
-      headBone.rotation.x = nodX;
-      headBone.rotation.y = turnY;
-      headBone.rotation.z = tiltZ;
+      this._euler.set(nodX, turnY, tiltZ, "XYZ");
+      headBone.quaternion.setFromEuler(this._euler);
     }
 
     // --- 호흡 (척추 + 가슴) ---
     const breathCycle = Math.sin(elapsedTime * 0.8);
     const breathCycle2 = Math.sin(elapsedTime * 0.8 + 0.3); // 약간 지연된 2차
 
-    const spineBone = humanoid.getRawBoneNode("spine");
+    const spineBone = humanoid.getNormalizedBoneNode("spine");
     if (spineBone) {
-      spineBone.rotation.x = breathCycle * 0.012;
+      this._euler.set(breathCycle * 0.012, 0, 0, "XYZ");
+      spineBone.quaternion.setFromEuler(this._euler);
     }
 
-    const chestBone = humanoid.getRawBoneNode("chest");
+    const chestBone = humanoid.getNormalizedBoneNode("chest");
     if (chestBone) {
-      chestBone.rotation.x = breathCycle2 * 0.008;
+      this._euler.set(breathCycle2 * 0.008, 0, 0, "XYZ");
+      chestBone.quaternion.setFromEuler(this._euler);
     }
 
     // --- 체중 이동 (상체 좌우 미세 흔들림 + 간헐적 큰 이동) ---
@@ -107,10 +115,11 @@ export class IdleAnimationController {
     // 부드러운 전환
     this.shiftCurrent += (this.shiftTarget - this.shiftCurrent) * delta * 0.8;
 
-    const hipsBone = humanoid.getRawBoneNode("hips");
+    const hipsBone = humanoid.getNormalizedBoneNode("hips");
     if (hipsBone) {
       const sway = Math.sin(elapsedTime * 0.12) * 0.008 + this.shiftCurrent;
-      hipsBone.rotation.z = sway;
+      this._euler.set(0, 0, sway, "XYZ");
+      hipsBone.quaternion.setFromEuler(this._euler);
     }
   }
 
@@ -120,9 +129,9 @@ export class IdleAnimationController {
 
     const bonesToReset = ["head", "spine", "chest", "hips"];
     for (const boneName of bonesToReset) {
-      const bone = humanoid.getRawBoneNode(boneName as "head");
+      const bone = humanoid.getNormalizedBoneNode(boneName as "head");
       if (bone) {
-        bone.rotation.set(0, 0, 0);
+        bone.quaternion.identity();
       }
     }
 
