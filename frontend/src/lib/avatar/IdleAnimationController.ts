@@ -26,36 +26,36 @@ export class IdleAnimationController {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
 
-    // 왼쪽 팔
+    // 왼쪽 팔 - 완전히 내림
     const leftShoulder = humanoid.getNormalizedBoneNode("leftShoulder");
     const leftUpperArm = humanoid.getNormalizedBoneNode("leftUpperArm");
     const leftLowerArm = humanoid.getNormalizedBoneNode("leftLowerArm");
 
     if (leftShoulder) {
-      leftShoulder.rotation.z = 0.1; // 어깨를 약간 내림
+      leftShoulder.rotation.z = 0.3; // 어깨를 더 많이 내림
     }
     if (leftUpperArm) {
-      leftUpperArm.rotation.z = 0.3; // 팔을 옆으로 내림
-      leftUpperArm.rotation.x = 0.2; // 팔을 약간 앞으로
+      leftUpperArm.rotation.z = 0.8; // 팔을 완전히 옆으로 내림 (약 46도)
+      leftUpperArm.rotation.x = 0.3; // 팔을 약간 앞으로
     }
     if (leftLowerArm) {
-      leftLowerArm.rotation.z = -0.1; // 팔꿈치를 자연스럽게
+      leftLowerArm.rotation.z = -0.2; // 팔꿈치를 자연스럽게
     }
 
-    // 오른쪽 팔
+    // 오른쪽 팔 - 완전히 내림
     const rightShoulder = humanoid.getNormalizedBoneNode("rightShoulder");
     const rightUpperArm = humanoid.getNormalizedBoneNode("rightUpperArm");
     const rightLowerArm = humanoid.getNormalizedBoneNode("rightLowerArm");
 
     if (rightShoulder) {
-      rightShoulder.rotation.z = -0.1; // 어깨를 약간 내림
+      rightShoulder.rotation.z = -0.3; // 어깨를 더 많이 내림
     }
     if (rightUpperArm) {
-      rightUpperArm.rotation.z = -0.3; // 팔을 옆으로 내림
-      rightUpperArm.rotation.x = 0.2; // 팔을 약간 앞으로
+      rightUpperArm.rotation.z = -0.8; // 팔을 완전히 옆으로 내림 (약 46도)
+      rightUpperArm.rotation.x = 0.3; // 팔을 약간 앞으로
     }
     if (rightLowerArm) {
-      rightLowerArm.rotation.z = 0.1; // 팔꿈치를 자연스럽게
+      rightLowerArm.rotation.z = 0.2; // 팔꿈치를 자연스럽게
     }
   }
 
@@ -111,14 +111,14 @@ export class IdleAnimationController {
     
     const leftUpperArm = humanoid.getNormalizedBoneNode("leftUpperArm");
     if (leftUpperArm) {
-      leftUpperArm.rotation.z = 0.3 + breathIntensity;
-      leftUpperArm.rotation.x = 0.2;
+      leftUpperArm.rotation.z = 0.8 + breathIntensity;
+      leftUpperArm.rotation.x = 0.3;
     }
 
     const rightUpperArm = humanoid.getNormalizedBoneNode("rightUpperArm");
     if (rightUpperArm) {
-      rightUpperArm.rotation.z = -0.3 - breathIntensity;
-      rightUpperArm.rotation.x = 0.2;
+      rightUpperArm.rotation.z = -0.8 - breathIntensity;
+      rightUpperArm.rotation.x = 0.3;
     }
   }
 
