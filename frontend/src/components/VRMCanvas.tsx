@@ -13,6 +13,7 @@ interface VRMCharacterProps {
 function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
   const { scene, camera } = useThree();
   const addedRef = useRef(false);
+  const loggedRef = useRef(false);
 
   useEffect(() => {
     // 가슴 중앙을 바라보도록 설정 (머리가 잘리지 않도록)
@@ -33,6 +34,11 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
   }, [vrm, scene]);
 
   useFrame((state, delta) => {
+    if (!loggedRef.current) {
+      loggedRef.current = true;
+      console.log("[VRM] Runtime — scene.rotation.y:", vrm.scene.rotation.y.toFixed(2),
+        "| meta:", vrm.meta?.metaVersion);
+    }
     const elapsed = state.clock.elapsedTime;
 
     // 1. 컨트롤러가 본/표정을 조작

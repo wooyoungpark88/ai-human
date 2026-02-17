@@ -61,9 +61,12 @@ export function useVRMAvatar() {
       });
 
       const vrm = gltf.userData.vrm;
-      // rotateVRM0은 humanoid rig의 _parentWorldRotations를 깨뜨려 팔 회전이 무효화됨
-      // scene만 180도 회전시켜 앞을 보게 함
-      vrm.scene.rotation.y = Math.PI;
+      // VRM 0.x는 +Z를 바라봄 → 180도 회전 필요
+      // VRM 1.0는 -Z를 바라봄(카메라 방향) → 회전 불필요
+      // rotateVRM0은 metaVersion === "0"일 때만 회전 적용
+      VRMUtils.rotateVRM0(vrm);
+      console.log("[VRM] Meta version:", vrm.meta?.metaVersion,
+        "| Rotation applied:", vrm.scene.rotation.y.toFixed(2));
       vrmRef.current = vrm;
 
       // 오디오 플레이어 초기화
