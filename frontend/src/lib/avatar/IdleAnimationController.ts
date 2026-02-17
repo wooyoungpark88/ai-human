@@ -111,18 +111,6 @@ export class IdleAnimationController {
     if (hipsBone) {
       const sway = Math.sin(elapsedTime * 0.12) * 0.008 + this.shiftCurrent;
       hipsBone.rotation.z = sway;
-      // 호흡에 따른 미세 상하
-      hipsBone.position.y = (hipsBone.position.y || 0) + breathCycle * 0.0005;
-    }
-
-    // --- 어깨 미세 움직임 (호흡 연동) ---
-    const leftShoulder = humanoid.getNormalizedBoneNode("leftShoulder");
-    if (leftShoulder) {
-      leftShoulder.rotation.z += breathCycle * 0.005;
-    }
-    const rightShoulder = humanoid.getNormalizedBoneNode("rightShoulder");
-    if (rightShoulder) {
-      rightShoulder.rotation.z -= breathCycle * 0.005;
     }
   }
 
