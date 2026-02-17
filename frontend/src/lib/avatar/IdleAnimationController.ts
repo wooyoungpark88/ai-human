@@ -26,20 +26,24 @@ export class IdleAnimationController {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
 
+    console.log("[IdleAnimation] 팔 포즈 초기화 시작");
+
     // 왼쪽 팔 - 완전히 내림
     const leftShoulder = humanoid.getNormalizedBoneNode("leftShoulder");
     const leftUpperArm = humanoid.getNormalizedBoneNode("leftUpperArm");
     const leftLowerArm = humanoid.getNormalizedBoneNode("leftLowerArm");
 
     if (leftShoulder) {
-      leftShoulder.rotation.z = 0.3; // 어깨를 더 많이 내림
+      leftShoulder.rotation.z = 0.5; // 어깨를 많이 내림
+      console.log("[IdleAnimation] leftShoulder 설정:", leftShoulder.rotation.z);
     }
     if (leftUpperArm) {
-      leftUpperArm.rotation.z = 0.8; // 팔을 완전히 옆으로 내림 (약 46도)
-      leftUpperArm.rotation.x = 0.3; // 팔을 약간 앞으로
+      leftUpperArm.rotation.z = 1.2; // 팔을 완전히 옆으로 내림 (약 69도)
+      leftUpperArm.rotation.x = 0.4; // 팔을 약간 앞으로
+      console.log("[IdleAnimation] leftUpperArm 설정:", leftUpperArm.rotation.z);
     }
     if (leftLowerArm) {
-      leftLowerArm.rotation.z = -0.2; // 팔꿈치를 자연스럽게
+      leftLowerArm.rotation.z = -0.3; // 팔꿈치를 자연스럽게
     }
 
     // 오른쪽 팔 - 완전히 내림
@@ -48,15 +52,19 @@ export class IdleAnimationController {
     const rightLowerArm = humanoid.getNormalizedBoneNode("rightLowerArm");
 
     if (rightShoulder) {
-      rightShoulder.rotation.z = -0.3; // 어깨를 더 많이 내림
+      rightShoulder.rotation.z = -0.5; // 어깨를 많이 내림
+      console.log("[IdleAnimation] rightShoulder 설정:", rightShoulder.rotation.z);
     }
     if (rightUpperArm) {
-      rightUpperArm.rotation.z = -0.8; // 팔을 완전히 옆으로 내림 (약 46도)
-      rightUpperArm.rotation.x = 0.3; // 팔을 약간 앞으로
+      rightUpperArm.rotation.z = -1.2; // 팔을 완전히 옆으로 내림 (약 69도)
+      rightUpperArm.rotation.x = 0.4; // 팔을 약간 앞으로
+      console.log("[IdleAnimation] rightUpperArm 설정:", rightUpperArm.rotation.z);
     }
     if (rightLowerArm) {
-      rightLowerArm.rotation.z = 0.2; // 팔꿈치를 자연스럽게
+      rightLowerArm.rotation.z = 0.3; // 팔꿈치를 자연스럽게
     }
+
+    console.log("[IdleAnimation] 팔 포즈 초기화 완료");
   }
 
   setListening(listening: boolean): void {
@@ -106,19 +114,39 @@ export class IdleAnimationController {
       spineBone.rotation.x = Math.sin(elapsedTime * 0.8) * 0.005;
     }
 
-    // 팔의 미세한 움직임 (호흡과 연동)
+    // 팔의 미세한 움직임 (호흡과 연동) - 매 프레임 강제 적용
     const breathIntensity = Math.sin(elapsedTime * 0.8) * 0.01;
+    
+    const leftShoulder = humanoid.getNormalizedBoneNode("leftShoulder");
+    if (leftShoulder) {
+      leftShoulder.rotation.z = 0.5;
+    }
     
     const leftUpperArm = humanoid.getNormalizedBoneNode("leftUpperArm");
     if (leftUpperArm) {
-      leftUpperArm.rotation.z = 0.8 + breathIntensity;
-      leftUpperArm.rotation.x = 0.3;
+      leftUpperArm.rotation.z = 1.2 + breathIntensity;
+      leftUpperArm.rotation.x = 0.4;
+    }
+
+    const leftLowerArm = humanoid.getNormalizedBoneNode("leftLowerArm");
+    if (leftLowerArm) {
+      leftLowerArm.rotation.z = -0.3;
+    }
+
+    const rightShoulder = humanoid.getNormalizedBoneNode("rightShoulder");
+    if (rightShoulder) {
+      rightShoulder.rotation.z = -0.5;
     }
 
     const rightUpperArm = humanoid.getNormalizedBoneNode("rightUpperArm");
     if (rightUpperArm) {
-      rightUpperArm.rotation.z = -0.8 - breathIntensity;
-      rightUpperArm.rotation.x = 0.3;
+      rightUpperArm.rotation.z = -1.2 - breathIntensity;
+      rightUpperArm.rotation.x = 0.4;
+    }
+
+    const rightLowerArm = humanoid.getNormalizedBoneNode("rightLowerArm");
+    if (rightLowerArm) {
+      rightLowerArm.rotation.z = 0.3;
     }
   }
 
