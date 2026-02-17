@@ -38,7 +38,7 @@ export class IdleAnimationController {
     if (!humanoid) return;
 
     // --- 머리 움직임 (다중 주파수 합성 → 자연스러운 불규칙 움직임) ---
-    const headBone = humanoid.getNormalizedBoneNode("head");
+    const headBone = humanoid.getRawBoneNode("head");
     if (headBone) {
       // 기본 끄덕임 (상하)
       let nodX =
@@ -86,12 +86,12 @@ export class IdleAnimationController {
     const breathCycle = Math.sin(elapsedTime * 0.8);
     const breathCycle2 = Math.sin(elapsedTime * 0.8 + 0.3); // 약간 지연된 2차
 
-    const spineBone = humanoid.getNormalizedBoneNode("spine");
+    const spineBone = humanoid.getRawBoneNode("spine");
     if (spineBone) {
       spineBone.rotation.x = breathCycle * 0.012;
     }
 
-    const chestBone = humanoid.getNormalizedBoneNode("chest");
+    const chestBone = humanoid.getRawBoneNode("chest");
     if (chestBone) {
       chestBone.rotation.x = breathCycle2 * 0.008;
     }
@@ -107,7 +107,7 @@ export class IdleAnimationController {
     // 부드러운 전환
     this.shiftCurrent += (this.shiftTarget - this.shiftCurrent) * delta * 0.8;
 
-    const hipsBone = humanoid.getNormalizedBoneNode("hips");
+    const hipsBone = humanoid.getRawBoneNode("hips");
     if (hipsBone) {
       const sway = Math.sin(elapsedTime * 0.12) * 0.008 + this.shiftCurrent;
       hipsBone.rotation.z = sway;
@@ -120,7 +120,7 @@ export class IdleAnimationController {
 
     const bonesToReset = ["head", "spine", "chest", "hips"];
     for (const boneName of bonesToReset) {
-      const bone = humanoid.getNormalizedBoneNode(boneName as "head");
+      const bone = humanoid.getRawBoneNode(boneName as "head");
       if (bone) {
         bone.rotation.set(0, 0, 0);
       }

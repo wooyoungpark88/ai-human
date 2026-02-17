@@ -20,68 +20,68 @@ interface ArmPose {
  */
 const EMOTION_GESTURES: Record<EmotionType, ArmPose> = {
   neutral: {
-    leftShoulder: { z: 0.15 },
-    leftUpperArm: { z: 1.5, x: 0.2 },
-    leftLowerArm: { z: -0.3, x: 0 },
-    rightShoulder: { z: -0.15 },
-    rightUpperArm: { z: -1.5, x: 0.2 },
-    rightLowerArm: { z: 0.3, x: 0 },
+    leftShoulder: { z: 0.1 },
+    leftUpperArm: { z: 0.8, x: 0.15 },
+    leftLowerArm: { z: -0.15, x: 0 },
+    rightShoulder: { z: -0.1 },
+    rightUpperArm: { z: -0.8, x: 0.15 },
+    rightLowerArm: { z: 0.15, x: 0 },
   },
   happy: {
-    leftShoulder: { z: 0.08 },
-    leftUpperArm: { z: 1.2, x: 0.15 },
-    leftLowerArm: { z: -0.2, x: 0 },
-    rightShoulder: { z: -0.08 },
-    rightUpperArm: { z: -1.2, x: 0.15 },
-    rightLowerArm: { z: 0.2, x: 0 },
+    leftShoulder: { z: 0.06 },
+    leftUpperArm: { z: 0.6, x: 0.1 },
+    leftLowerArm: { z: -0.1, x: 0 },
+    rightShoulder: { z: -0.06 },
+    rightUpperArm: { z: -0.6, x: 0.1 },
+    rightLowerArm: { z: 0.1, x: 0 },
   },
   sad: {
-    leftShoulder: { z: 0.25 },
-    leftUpperArm: { z: 1.6, x: 0.3 },
-    leftLowerArm: { z: -0.35, x: 0.05 },
-    rightShoulder: { z: -0.25 },
-    rightUpperArm: { z: -1.6, x: 0.3 },
-    rightLowerArm: { z: 0.35, x: 0.05 },
+    leftShoulder: { z: 0.15 },
+    leftUpperArm: { z: 1.0, x: 0.2 },
+    leftLowerArm: { z: -0.2, x: 0.03 },
+    rightShoulder: { z: -0.15 },
+    rightUpperArm: { z: -1.0, x: 0.2 },
+    rightLowerArm: { z: 0.2, x: 0.03 },
   },
   angry: {
-    leftShoulder: { z: 0.2 },
-    leftUpperArm: { z: 1.25, x: 0.25 },
-    leftLowerArm: { z: -0.4, x: 0.1 },
-    rightShoulder: { z: -0.2 },
-    rightUpperArm: { z: -1.25, x: 0.25 },
-    rightLowerArm: { z: 0.4, x: 0.1 },
+    leftShoulder: { z: 0.12 },
+    leftUpperArm: { z: 0.7, x: 0.2 },
+    leftLowerArm: { z: -0.25, x: 0.05 },
+    rightShoulder: { z: -0.12 },
+    rightUpperArm: { z: -0.7, x: 0.2 },
+    rightLowerArm: { z: 0.25, x: 0.05 },
   },
   surprised: {
     leftShoulder: { z: 0.0 },
-    leftUpperArm: { z: 1.1, x: 0.15 },
-    leftLowerArm: { z: -0.15, x: -0.1 },
+    leftUpperArm: { z: 0.5, x: 0.1 },
+    leftLowerArm: { z: -0.1, x: -0.05 },
     rightShoulder: { z: 0.0 },
-    rightUpperArm: { z: -1.1, x: 0.15 },
-    rightLowerArm: { z: 0.15, x: -0.1 },
+    rightUpperArm: { z: -0.5, x: 0.1 },
+    rightLowerArm: { z: 0.1, x: -0.05 },
   },
   thinking: {
-    leftShoulder: { z: 0.15 },
-    leftUpperArm: { z: 1.5, x: 0.2 },
-    leftLowerArm: { z: -0.3, x: 0 },
-    rightShoulder: { z: -0.08 },
-    rightUpperArm: { z: -0.95, x: 0.5 },
-    rightLowerArm: { z: 0.5, x: 0.35 },
+    leftShoulder: { z: 0.1 },
+    leftUpperArm: { z: 0.8, x: 0.15 },
+    leftLowerArm: { z: -0.15, x: 0 },
+    rightShoulder: { z: -0.05 },
+    rightUpperArm: { z: -0.4, x: 0.4 },
+    rightLowerArm: { z: 0.3, x: 0.25 },
   },
   anxious: {
-    leftShoulder: { z: 0.3 },
-    leftUpperArm: { z: 1.5, x: 0.4 },
-    leftLowerArm: { z: -0.4, x: 0.15 },
-    rightShoulder: { z: -0.3 },
-    rightUpperArm: { z: -1.5, x: 0.4 },
-    rightLowerArm: { z: 0.4, x: 0.15 },
+    leftShoulder: { z: 0.18 },
+    leftUpperArm: { z: 0.9, x: 0.3 },
+    leftLowerArm: { z: -0.25, x: 0.1 },
+    rightShoulder: { z: -0.18 },
+    rightUpperArm: { z: -0.9, x: 0.3 },
+    rightLowerArm: { z: 0.25, x: 0.1 },
   },
   empathetic: {
-    leftShoulder: { z: 0.1 },
-    leftUpperArm: { z: 1.35, x: 0.2 },
-    leftLowerArm: { z: -0.25, x: 0 },
-    rightShoulder: { z: -0.1 },
-    rightUpperArm: { z: -1.35, x: 0.2 },
-    rightLowerArm: { z: 0.25, x: 0 },
+    leftShoulder: { z: 0.08 },
+    leftUpperArm: { z: 0.75, x: 0.15 },
+    leftLowerArm: { z: -0.12, x: 0 },
+    rightShoulder: { z: -0.08 },
+    rightUpperArm: { z: -0.75, x: 0.15 },
+    rightLowerArm: { z: 0.12, x: 0 },
   },
 };
 
@@ -145,8 +145,8 @@ export class GestureController {
 
     if (!this.loggedOnce) {
       this.loggedOnce = true;
-      const lua = humanoid.getNormalizedBoneNode("leftUpperArm");
-      const rua = humanoid.getNormalizedBoneNode("rightUpperArm");
+      const lua = humanoid.getRawBoneNode("leftUpperArm");
+      const rua = humanoid.getRawBoneNode("rightUpperArm");
       console.log("[Gesture] leftUpperArm bone:", lua ? "found" : "NULL",
         "| rightUpperArm bone:", rua ? "found" : "NULL",
         "| target L.z:", this.targetPose.leftUpperArm.z,
@@ -167,7 +167,7 @@ export class GestureController {
     const smoothFactor = 1.0 - Math.exp(-this.transitionSpeed * delta);
 
     // 왼쪽
-    const leftShoulder = humanoid.getNormalizedBoneNode("leftShoulder");
+    const leftShoulder = humanoid.getRawBoneNode("leftShoulder");
     if (leftShoulder) {
       this.currentPose.leftShoulder.z +=
         (this.targetPose.leftShoulder.z - this.currentPose.leftShoulder.z) *
@@ -175,7 +175,7 @@ export class GestureController {
       leftShoulder.rotation.z = this.currentPose.leftShoulder.z;
     }
 
-    const leftUpperArm = humanoid.getNormalizedBoneNode("leftUpperArm");
+    const leftUpperArm = humanoid.getRawBoneNode("leftUpperArm");
     if (leftUpperArm) {
       this.currentPose.leftUpperArm.z +=
         (this.targetPose.leftUpperArm.z - this.currentPose.leftUpperArm.z) *
@@ -188,7 +188,7 @@ export class GestureController {
       leftUpperArm.rotation.x = this.currentPose.leftUpperArm.x;
     }
 
-    const leftLowerArm = humanoid.getNormalizedBoneNode("leftLowerArm");
+    const leftLowerArm = humanoid.getRawBoneNode("leftLowerArm");
     if (leftLowerArm) {
       this.currentPose.leftLowerArm.z +=
         (this.targetPose.leftLowerArm.z - this.currentPose.leftLowerArm.z) *
@@ -201,7 +201,7 @@ export class GestureController {
     }
 
     // 오른쪽
-    const rightShoulder = humanoid.getNormalizedBoneNode("rightShoulder");
+    const rightShoulder = humanoid.getRawBoneNode("rightShoulder");
     if (rightShoulder) {
       this.currentPose.rightShoulder.z +=
         (this.targetPose.rightShoulder.z - this.currentPose.rightShoulder.z) *
@@ -209,7 +209,7 @@ export class GestureController {
       rightShoulder.rotation.z = this.currentPose.rightShoulder.z;
     }
 
-    const rightUpperArm = humanoid.getNormalizedBoneNode("rightUpperArm");
+    const rightUpperArm = humanoid.getRawBoneNode("rightUpperArm");
     if (rightUpperArm) {
       this.currentPose.rightUpperArm.z +=
         (this.targetPose.rightUpperArm.z - this.currentPose.rightUpperArm.z) *
@@ -222,7 +222,7 @@ export class GestureController {
       rightUpperArm.rotation.x = this.currentPose.rightUpperArm.x;
     }
 
-    const rightLowerArm = humanoid.getNormalizedBoneNode("rightLowerArm");
+    const rightLowerArm = humanoid.getRawBoneNode("rightLowerArm");
     if (rightLowerArm) {
       this.currentPose.rightLowerArm.z +=
         (this.targetPose.rightLowerArm.z - this.currentPose.rightLowerArm.z) *
@@ -250,7 +250,7 @@ export class GestureController {
     ] as const;
 
     for (const boneName of bones) {
-      const bone = humanoid.getNormalizedBoneNode(boneName);
+      const bone = humanoid.getRawBoneNode(boneName);
       if (bone) {
         bone.rotation.set(0, 0, 0);
       }

@@ -17,7 +17,7 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
 
   useEffect(() => {
     // 가슴 중앙을 바라보도록 설정 (머리가 잘리지 않도록)
-    camera.lookAt(0, 1.15, 0);
+    camera.lookAt(0, 1.2, 0);
   }, [camera]);
 
   useEffect(() => {
@@ -41,16 +41,18 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
     }
     const elapsed = state.clock.elapsedTime;
 
-    // 1. 컨트롤러가 본/표정을 조작
+    // 1. normalized bone 컨트롤러 (표정/눈깜빡임/립싱크)
     controllers.blink?.update(delta, elapsed);
-    controllers.idle?.update(delta, elapsed);
-    controllers.gesture?.update(delta, elapsed);
     controllers.expression?.updateIdle(delta, elapsed);
     controllers.expression?.update(delta);
     controllers.lipSync?.update(delta);
 
-    // 2. vrm.update()를 마지막에 호출 — 스프링본이 최신 본 위치를 반영
+    // 2. vrm.update() — normalized→raw bone 변환 + 스프링본
     vrm.update(delta);
+
+    // 3. raw bone 컨트롤러 (idle/gesture) — vrm.update() 이후에 raw bone 직접 덮어쓰기
+    controllers.idle?.update(delta, elapsed);
+    controllers.gesture?.update(delta, elapsed);
   });
 
   return null;
@@ -65,7 +67,7 @@ interface VRMCanvasProps {
 export default function VRMCanvas({ vrm, controllers }: VRMCanvasProps) {
   return (
     <Canvas
-      camera={{ position: [0, 1.25, 0.85], fov: 35, near: 0.1, far: 100 }}
+      camera={{ position: [0, 1.3, 0.9], fov: 35, near: 0.1, far: 100 }}
       dpr={[1, 1.5]}
       style={{ width: "100%", height: "100%" }}
       gl={{ antialias: true, alpha: true }}
