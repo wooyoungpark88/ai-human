@@ -132,6 +132,10 @@ def build_tagged_text(text: str, audio_tag: str, voice_direction: str = "") -> s
     """
     ElevenLabs v3용 태그가 포함된 텍스트를 생성합니다.
     감정 오디오 태그와 LLM의 voice_direction을 결합합니다.
+
+    주의: audio tag는 eleven_v3 계열 모델에서만 지원됩니다.
+    eleven_flash_v2_5 등 비-v3 모델에서는 태그를 텍스트로 읽어버리므로
+    호출자가 모델 호환성을 확인해야 합니다.
     """
     tags = []
 

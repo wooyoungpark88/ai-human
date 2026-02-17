@@ -38,6 +38,10 @@ class ElevenLabsTTSService:
         key = self.api_key
         return bool(key) and not key.startswith("your_") and len(key) > 10
 
+    def _supports_audio_tags(self) -> bool:
+        """Audio tags는 eleven_v3 계열 모델에서만 지원됩니다."""
+        return self.model_id.startswith("eleven_v3")
+
     async def synthesize_speech_streaming(
         self,
         text: str,
@@ -57,8 +61,8 @@ class ElevenLabsTTSService:
             logger.warning("[TTS] Voice ID 미설정 → 스트리밍 스킵")
             return
 
-        # 감정 태그 적용
-        if emotion_mapping:
+        # 감정 태그 적용 (v3 모델만 audio tag 지원, flash 모델은 태그를 텍스트로 읽어버림)
+        if emotion_mapping and self._supports_audio_tags():
             tagged_text = build_tagged_text(
                 text, emotion_mapping.elevenlabs_audio_tag, voice_direction
             )
