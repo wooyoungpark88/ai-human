@@ -39,6 +39,7 @@ class ClientMessage(BaseModel):
     data: Optional[str] = None  # base64 인코딩된 오디오 데이터
     text: Optional[str] = None  # 텍스트 직접 입력
     profile_id: Optional[str] = None
+    case_id: Optional[str] = None
 
 
 class ServerMessage(BaseModel):
@@ -62,3 +63,27 @@ class ClientProfile(BaseModel):
     system_prompt: str
     face_id: Optional[str] = None
     voice_id: Optional[str] = None
+
+
+class CaseProfile(BaseModel):
+    """상담 훈련용 내담자 케이스 프로필 — AI가 연기할 인물"""
+    id: str
+    name: str
+    age: int
+    gender: str
+    occupation: str
+    presenting_issue: str
+    category: str
+    difficulty: str
+    description: str
+    personality: str
+    speaking_style: str
+    background_story: str
+    symptoms: list[str] = []
+    hidden_issues: list[str] = []
+    emotional_baseline: str = "neutral"
+    resistance_level: float = 0.5
+    session_goals: list[str] = []
+    system_prompt: str
+    voice_id: Optional[str] = None
+    face_id: Optional[str] = None

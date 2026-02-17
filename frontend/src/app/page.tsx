@@ -23,14 +23,9 @@ import type {
   EmotionType,
   ServerMessage,
   ConnectionStatus,
+  CaseInfo,
 } from "@/lib/types";
 import { API_URL } from "@/lib/constants";
-
-interface ProfileInfo {
-  id: string;
-  name: string;
-  description: string;
-}
 
 export default function Home() {
   // 상태 관리
@@ -40,8 +35,8 @@ export default function Home() {
   const [currentEmotion, setCurrentEmotion] = useState<EmotionType>("neutral");
   const [emotionIntensity, setEmotionIntensity] = useState(0.5);
   const [isSessionActive, setIsSessionActive] = useState(false);
-  const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState("default");
+  const [cases, setCases] = useState<CaseInfo[]>([]);
+  const [selectedCase, setSelectedCase] = useState("burnout_beginner");
   const [textInput, setTextInput] = useState("");
   const [sttAvailable, setSttAvailable] = useState(true);
   const [userName, setUserName] = useState("");
@@ -64,18 +59,18 @@ export default function Home() {
     }
   }, []);
 
-  // 프로필 목록 로드 (백엔드 API)
+  // 케이스 목록 로드 (백엔드 API)
   useEffect(() => {
-    async function loadProfiles() {
+    async function loadCases() {
       try {
-        const res = await fetch(`${API_URL}/api/profiles`);
+        const res = await fetch(`${API_URL}/api/cases`);
         const json = await res.json();
-        if (json.profiles) setProfiles(json.profiles);
+        if (json.cases) setCases(json.cases);
       } catch (err) {
-        console.warn("프로필 목록 로드 실패:", err);
+        console.warn("케이스 목록 로드 실패:", err);
       }
     }
-    loadProfiles();
+    loadCases();
   }, []);
 
   // partialTranscript ref 동기화
@@ -178,14 +173,14 @@ export default function Home() {
 
   // 세션 시작
   const handleStartSession = useCallback(async () => {
-    // 1. WebSocket 연결
-    ws.connect();
+    // 1. WebSocket 연결 (선택된 케이스 ID를 쿼리 파라미터로 전달)
+    ws.connect(selectedCase);
 
     // 2. VRM 아바타 초기화
     await avatar.initialize();
 
     setIsSessionActive(true);
-  }, [ws, avatar]);
+  }, [ws, avatar, selectedCase]);
 
   // 세션 종료
   const handleStopSession = useCallback(() => {
@@ -198,12 +193,12 @@ export default function Home() {
     setPartialTranscript("");
   }, [mic, ws, avatar]);
 
-  // 프로필 변경
-  const handleProfileChange = useCallback(
-    (profileId: string) => {
-      setSelectedProfile(profileId);
+  // 케이스 변경
+  const handleCaseChange = useCallback(
+    (caseId: string) => {
+      setSelectedCase(caseId);
       if (ws.isConnected) {
-        ws.sendMessage({ type: "config", profile_id: profileId });
+        ws.sendMessage({ type: "config", case_id: caseId });
         setMessages([]);
       }
     },
@@ -274,7 +269,7 @@ export default function Home() {
       {/* 헤더 */}
       <header className="border-b px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold">AI Avatar</h1>
+          <h1 className="text-lg font-bold">AI 상담 훈련</h1>
           <Badge variant="outline" className="gap-1.5 text-xs">
             <span
               className={`w-2 h-2 rounded-full ${getStatusColor(ws.status)}`}
@@ -284,20 +279,20 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* 프로필 선택 */}
-          {profiles.length > 0 && (
+          {/* 내담자 케이스 선택 */}
+          {cases.length > 0 && (
             <Select
-              value={selectedProfile}
-              onValueChange={handleProfileChange}
+              value={selectedCase}
+              onValueChange={handleCaseChange}
               disabled={isSessionActive}
             >
-              <SelectTrigger className="w-[140px] h-8 text-xs">
-                <SelectValue placeholder="프로필 선택" />
+              <SelectTrigger className="w-[200px] h-8 text-xs">
+                <SelectValue placeholder="내담자 선택" />
               </SelectTrigger>
               <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
+                {cases.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name} ({c.age}세) - {c.presenting_issue}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -311,7 +306,7 @@ export default function Home() {
 
           {!isSessionActive ? (
             <Button onClick={handleStartSession} size="sm">
-              대화 시작
+              상담 시작
             </Button>
           ) : (
             <Button
@@ -319,7 +314,7 @@ export default function Home() {
               variant="outline"
               size="sm"
             >
-              대화 종료
+              상담 종료
             </Button>
           )}
 
@@ -362,8 +357,8 @@ export default function Home() {
                   {mic.isRecording
                     ? "듣고 있어요..."
                     : isSessionActive
-                      ? "마이크를 눌러 말하세요"
-                      : "대화를 시작해주세요"}
+                      ? "마이크를 눌러 상담하세요"
+                      : "상담을 시작해주세요"}
                 </p>
                 {mic.error && (
                   <p className="text-xs text-red-500">{mic.error}</p>
@@ -388,7 +383,7 @@ export default function Home() {
                     handleSendText();
                   }
                 }}
-                placeholder="메시지를 입력하세요..."
+                placeholder="상담사로서 응답하세요..."
                 disabled={isThinking}
                 className="flex-1"
               />

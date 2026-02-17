@@ -20,6 +20,7 @@ from backend.services.emotion_mapper import get_emotion_mapping
 from backend.services import supabase_service
 
 PROFILES_DIR = Path(__file__).resolve().parent / "client_profiles"
+CASE_PROFILES_DIR = Path(__file__).resolve().parent / "case_profiles"
 
 # 로깅 설정
 logging.basicConfig(
@@ -102,6 +103,51 @@ async def list_profiles():
     return {"profiles": profiles}
 
 
+@app.get("/api/cases")
+async def list_cases():
+    """사용 가능한 내담자 케이스 목록을 반환합니다."""
+    cases = []
+    if CASE_PROFILES_DIR.exists():
+        for case_path in CASE_PROFILES_DIR.glob("*.json"):
+            try:
+                with open(case_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                cases.append({
+                    "id": data.get("id", case_path.stem),
+                    "name": data.get("name", ""),
+                    "age": data.get("age", 0),
+                    "gender": data.get("gender", ""),
+                    "occupation": data.get("occupation", ""),
+                    "presenting_issue": data.get("presenting_issue", ""),
+                    "category": data.get("category", ""),
+                    "difficulty": data.get("difficulty", "beginner"),
+                    "description": data.get("description", ""),
+                    "session_goals": data.get("session_goals", []),
+                })
+            except Exception as e:
+                logger.warning(f"케이스 로드 실패: {case_path}: {e}")
+    return {"cases": cases}
+
+
+@app.get("/api/cases/{case_id}")
+async def get_case_detail(case_id: str):
+    """케이스 상세 정보를 반환합니다 (system_prompt, hidden_issues 제외)."""
+    case_path = CASE_PROFILES_DIR / f"{case_id}.json"
+    if not case_path.exists():
+        return {"error": "케이스를 찾을 수 없습니다."}
+
+    try:
+        with open(case_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        # system_prompt와 hidden_issues는 상담사에게 노출하지 않음
+        data.pop("system_prompt", None)
+        data.pop("hidden_issues", None)
+        return data
+    except Exception as e:
+        logger.error(f"케이스 상세 로드 실패: {e}")
+        return {"error": "케이스 로드 중 오류가 발생했습니다."}
+
+
 class ConversationSession:
     """개별 대화 세션을 관리합니다."""
 
@@ -118,17 +164,22 @@ class ConversationSession:
         self.conversation_id: str | None = None
         self.user_id: str | None = None
 
-    async def initialize(self, profile_id: str = "default") -> None:
+    async def initialize(self, case_id: str = "burnout_beginner") -> None:
         """세션을 초기화합니다."""
-        # 프로필 로드 (Supabase 우선, JSON fallback)
-        profile = supabase_service.load_profile(profile_id)
-        if profile:
-            self.llm_service.system_prompt = profile.system_prompt
-            logger.info(f"[Supabase] 프로필 '{profile.name}' 로드 완료")
+        # 케이스 프로필 로드 (case_profiles/ 디렉토리)
+        case_profile = self.llm_service.load_case_profile(case_id)
+        if case_profile:
+            logger.info(f"[Case] 케이스 '{case_profile.name}' 로드 완료 ({case_profile.presenting_issue})")
         else:
-            profile = self.llm_service.load_profile(profile_id)
+            # fallback: 기존 프로필 시스템
+            profile = supabase_service.load_profile(case_id)
             if profile:
-                logger.info(f"[File] 프로필 '{profile.name}' 로드 완료")
+                self.llm_service.system_prompt = profile.system_prompt
+                logger.info(f"[Supabase] 프로필 '{profile.name}' 로드 완료")
+            else:
+                profile = self.llm_service.load_profile(case_id)
+                if profile:
+                    logger.info(f"[File] 프로필 '{profile.name}' 로드 완료")
 
         # Deepgram STT 연결 (실패해도 세션은 계속 유지)
         self.stt_available = await self.stt_service.connect()
@@ -301,16 +352,16 @@ class ConversationSession:
 
 
 @app.websocket("/ws/conversation")
-async def websocket_conversation(websocket: WebSocket):
+async def websocket_conversation(websocket: WebSocket, case_id: str = "burnout_beginner"):
     """실시간 대화 WebSocket 엔드포인트"""
     await websocket.accept()
-    logger.info("WebSocket 연결 수락")
+    logger.info(f"WebSocket 연결 수락 (case_id={case_id})")
 
     session = ConversationSession(websocket)
 
     try:
-        # 세션 초기화
-        await session.initialize()
+        # 세션 초기화 (선택된 케이스로)
+        await session.initialize(case_id=case_id)
 
         # STT 리스너를 백그라운드 태스크로 실행 (STT 가용 시에만)
         if session.stt_available:
@@ -355,9 +406,12 @@ async def websocket_conversation(websocket: WebSocket):
                         await session._process_conversation(text)
 
                 elif msg_type == "config":
-                    # 프로필 변경
-                    profile_id = data.get("profile_id", "default")
-                    session.llm_service.load_profile(profile_id)
+                    # 케이스 변경
+                    case_id = data.get("case_id") or data.get("profile_id", "burnout_beginner")
+                    case_profile = session.llm_service.load_case_profile(case_id)
+                    if not case_profile:
+                        # fallback: 기존 프로필 시스템
+                        session.llm_service.load_profile(case_id)
                     session.llm_service.clear_history()
                     await session.send_message(
                         ServerMessage(type="status", text="profile_changed")

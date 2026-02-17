@@ -8,7 +8,7 @@ from pathlib import Path
 import anthropic
 
 from backend.config import settings
-from backend.models.schemas import LLMResponse, EmotionType, ClientProfile
+from backend.models.schemas import LLMResponse, EmotionType, ClientProfile, CaseProfile
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ voice_direction은 음성 톤에 대한 힌트입니다.
 한국어로 자연스럽게 대화하세요. 답변은 2~3문장 이내로 간결하게 하세요."""
 
 PROFILES_DIR = Path(__file__).resolve().parent.parent / "client_profiles"
+CASE_PROFILES_DIR = Path(__file__).resolve().parent.parent / "case_profiles"
 
 
 class ClaudeLLMService:
@@ -69,6 +70,26 @@ class ClaudeLLMService:
             return profile
         except Exception as e:
             logger.error(f"프로필 로드 오류: {e}")
+            return None
+
+    def load_case_profile(self, case_id: str) -> Optional[CaseProfile]:
+        """상담 훈련용 내담자 케이스 프로필을 로드합니다."""
+        profile_path = CASE_PROFILES_DIR / f"{case_id}.json"
+        if not profile_path.exists():
+            logger.warning(f"케이스 프로필 파일 없음: {profile_path}")
+            return None
+
+        try:
+            with open(profile_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            case_profile = CaseProfile(**data)
+
+            if case_profile.system_prompt:
+                self.system_prompt = case_profile.system_prompt
+            logger.info(f"케이스 프로필 로드 완료: {case_profile.name} ({case_profile.presenting_issue})")
+            return case_profile
+        except Exception as e:
+            logger.error(f"케이스 프로필 로드 오류: {e}")
             return None
 
     def _is_api_key_valid(self) -> bool:

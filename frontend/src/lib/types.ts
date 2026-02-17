@@ -14,6 +14,7 @@ export interface ClientMessage {
   data?: string; // base64 인코딩된 오디오 데이터
   text?: string; // 텍스트 직접 입력
   profile_id?: string;
+  case_id?: string;
 }
 
 /** 감정 타입 */
@@ -49,3 +50,17 @@ export type ConnectionStatus =
   | "connecting"
   | "connected"
   | "error";
+
+/** 내담자 케이스 정보 */
+export interface CaseInfo {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  occupation: string;
+  presenting_issue: string;
+  category: string;
+  difficulty: string;
+  description: string;
+  session_goals: string[];
+}

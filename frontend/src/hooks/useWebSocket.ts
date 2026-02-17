@@ -16,11 +16,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const onMessageRef = useRef(onMessage);
   onMessageRef.current = onMessage;
 
-  const connect = useCallback(() => {
+  const connect = useCallback((caseId?: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     setStatus("connecting");
-    const ws = new WebSocket(WS_URL);
+    const url = caseId ? `${WS_URL}?case_id=${encodeURIComponent(caseId)}` : WS_URL;
+    const ws = new WebSocket(url);
 
     ws.onopen = () => {
       setStatus("connected");

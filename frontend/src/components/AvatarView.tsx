@@ -88,7 +88,7 @@ export function AvatarView({
               </svg>
             </div>
             <p className="text-gray-400 text-sm">
-              시작 버튼을 눌러 대화를 시작하세요
+              내담자를 선택하고 상담을 시작하세요
             </p>
           </div>
         </div>
