@@ -19,11 +19,62 @@ export function useMicrophone(options: UseMicrophoneOptions = {}) {
   const onAudioDataRef = useRef(onAudioData);
   onAudioDataRef.current = onAudioData;
 
+  /** Int16 PCM → Base64 변환 */
+  const pcmToBase64 = useCallback((buffer: ArrayBuffer) => {
+    const uint8Array = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i]);
+    }
+    return btoa(binary);
+  }, []);
+
+  /** AudioWorklet으로 녹음 시작 (레이턴시 최적화: 128ms 버퍼) */
+  const startWithWorklet = useCallback(
+    async (audioContext: AudioContext, source: MediaStreamAudioSourceNode) => {
+      await audioContext.audioWorklet.addModule("/audio-processor.js");
+      const workletNode = new AudioWorkletNode(audioContext, "pcm-processor");
+      workletNodeRef.current = workletNode;
+
+      workletNode.port.onmessage = (event) => {
+        const { pcmData } = event.data;
+        if (pcmData) {
+          onAudioDataRef.current?.(pcmToBase64(pcmData));
+        }
+      };
+
+      source.connect(workletNode);
+      workletNode.connect(audioContext.destination);
+    },
+    [pcmToBase64]
+  );
+
+  /** ScriptProcessorNode fallback (AudioWorklet 미지원 시) */
+  const startWithScriptProcessor = useCallback(
+    (audioContext: AudioContext, source: MediaStreamAudioSourceNode) => {
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      processorRef.current = processor;
+
+      processor.onaudioprocess = (event) => {
+        const inputData = event.inputBuffer.getChannelData(0);
+        const pcmData = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+        onAudioDataRef.current?.(pcmToBase64(pcmData.buffer));
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+    },
+    [pcmToBase64]
+  );
+
   const startRecording = useCallback(async () => {
     try {
       setError(null);
 
-      // 마이크 접근 권한 요청
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: AUDIO_CONFIG.sampleRate,
@@ -36,7 +87,6 @@ export function useMicrophone(options: UseMicrophoneOptions = {}) {
 
       streamRef.current = stream;
 
-      // AudioContext 생성
       const audioContext = new AudioContext({
         sampleRate: AUDIO_CONFIG.sampleRate,
       });
@@ -44,46 +94,25 @@ export function useMicrophone(options: UseMicrophoneOptions = {}) {
 
       const source = audioContext.createMediaStreamSource(stream);
 
-      // ScriptProcessorNode 사용 (AudioWorklet 대비 호환성 우수)
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
-
-      processor.onaudioprocess = (event) => {
-        const inputData = event.inputBuffer.getChannelData(0);
-
-        // Float32 -> Int16 PCM 변환
-        const pcmData = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]));
-          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-        }
-
-        // Base64 인코딩
-        const uint8Array = new Uint8Array(pcmData.buffer);
-        let binary = "";
-        for (let i = 0; i < uint8Array.length; i++) {
-          binary += String.fromCharCode(uint8Array[i]);
-        }
-        const base64 = btoa(binary);
-
-        onAudioDataRef.current?.(base64);
-      };
-
-      source.connect(processor);
-      processor.connect(audioContext.destination);
+      // AudioWorklet 우선, ScriptProcessorNode fallback
+      try {
+        await startWithWorklet(audioContext, source);
+        console.log("[Mic] AudioWorklet 모드로 녹음 시작 (128ms 버퍼)");
+      } catch {
+        startWithScriptProcessor(audioContext, source);
+        console.log("[Mic] ScriptProcessor fallback 모드로 녹음 시작 (256ms 버퍼)");
+      }
 
       setIsRecording(true);
-      console.log("[Mic] 녹음 시작");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "마이크 접근 실패";
       setError(message);
       console.error("[Mic] 오류:", message);
     }
-  }, []);
+  }, [startWithWorklet, startWithScriptProcessor]);
 
   const stopRecording = useCallback(() => {
-    // 프로세서 연결 해제
     if (processorRef.current) {
       processorRef.current.disconnect();
       processorRef.current = null;
@@ -94,13 +123,11 @@ export function useMicrophone(options: UseMicrophoneOptions = {}) {
       workletNodeRef.current = null;
     }
 
-    // AudioContext 종료
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
 
-    // 미디어 스트림 종료
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;

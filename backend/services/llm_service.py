@@ -98,7 +98,11 @@ class ClaudeLLMService:
         return bool(key) and not key.startswith("your_") and len(key) > 10
 
     async def generate_response(self, user_text: str) -> LLMResponse:
-        """사용자 텍스트에 대한 대화 응답과 감정을 생성합니다."""
+        """사용자 텍스트에 대한 대화 응답과 감정을 생성합니다 (스트리밍).
+
+        스트리밍으로 토큰을 수신하여 TTFB를 최소화합니다.
+        전체 JSON이 완성되면 파싱하여 반환합니다.
+        """
         # API 키가 플레이스홀더인 경우 mock 응답 반환
         if not self._is_api_key_valid():
             logger.warning("[LLM] API 키 미설정 → mock 응답 반환")
@@ -119,14 +123,18 @@ class ClaudeLLMService:
             ]
 
         try:
-            response = await self.client.messages.create(
+            # 스트리밍으로 응답 수신 (TTFB 최소화)
+            accumulated = ""
+            async with self.client.messages.stream(
                 model="claude-sonnet-4-20250514",
                 max_tokens=1024,
                 system=self.system_prompt,
                 messages=self.conversation_history,
-            )
+            ) as stream:
+                async for text in stream.text_stream:
+                    accumulated += text
 
-            raw_text = response.content[0].text.strip()
+            raw_text = accumulated.strip()
             logger.debug(f"[LLM Raw] {raw_text}")
 
             # JSON 파싱

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # ElevenLabs
     ELEVENLABS_API_KEY: str = ""
     ELEVENLABS_VOICE_ID: str = ""
-    ELEVENLABS_MODEL_ID: str = "eleven_v3"
+    ELEVENLABS_MODEL_ID: str = "eleven_flash_v2_5"  # Flash v2.5: ~75ms TTS 레이턴시 (eleven_v3 대비 ~80% 절감)
 
     # Deepgram
     DEEPGRAM_API_KEY: str = ""

@@ -254,7 +254,11 @@ class ConversationSession:
             logger.error(f"오디오 처리 오류: {e}")
 
     async def run_stt_listener(self) -> None:
-        """STT 트랜스크립트를 수신하고 처리하는 루프"""
+        """STT 트랜스크립트를 수신하고 처리하는 루프
+
+        레이턴시 최적화: speech_final 이벤트에서 즉시 LLM 호출 (endpointing 기반, ~300ms).
+        utterance_end는 fallback으로만 사용 (~1000ms).
+        """
         try:
             async for event in self.stt_service.get_transcripts():
                 if not self.is_active:
@@ -265,6 +269,7 @@ class ConversationSession:
 
                 if event_type == "transcript":
                     is_final = event.get("is_final", False)
+                    speech_final = event.get("speech_final", False)
 
                     # 프론트엔드에 트랜스크립트 전송
                     await self.send_message(
@@ -278,11 +283,19 @@ class ConversationSession:
                     if is_final and text.strip():
                         self.accumulated_text += " " + text.strip()
 
+                    # speech_final: endpointing 기반 발화 종료 → 즉시 LLM 호출
+                    if speech_final and self.accumulated_text.strip():
+                        user_text = self.accumulated_text.strip()
+                        self.accumulated_text = ""
+                        logger.info(f"[STT] speech_final 트리거 → LLM 호출")
+                        await self._process_conversation(user_text)
+
                 elif event_type == "utterance_end":
-                    # 발화 종료 -> LLM 처리 시작
+                    # fallback: speech_final이 누락된 경우에만 트리거
                     if self.accumulated_text.strip():
                         user_text = self.accumulated_text.strip()
                         self.accumulated_text = ""
+                        logger.info(f"[STT] utterance_end fallback → LLM 호출")
                         await self._process_conversation(user_text)
 
         except asyncio.CancelledError:

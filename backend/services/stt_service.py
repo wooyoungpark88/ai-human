@@ -51,7 +51,7 @@ class DeepgramSTTService:
             self.connection.on(LiveTranscriptionEvents.Error, self._on_error)
             self.connection.on(LiveTranscriptionEvents.Close, self._on_close)
 
-            # 연결 옵션 설정
+            # 연결 옵션 설정 (레이턴시 최적화)
             options = LiveOptions(
                 model="nova-2",
                 language="ko",
@@ -60,9 +60,9 @@ class DeepgramSTTService:
                 channels=1,
                 punctuate=True,
                 interim_results=True,
-                utterance_end_ms=1500,
+                utterance_end_ms=1000,    # 1500→1000: fallback 타임아웃 단축
                 vad_events=True,
-                endpointing=300,
+                endpointing=300,          # 300ms 침묵 후 speech_final 트리거
             )
 
             result = await self.connection.start(options)
@@ -121,15 +121,21 @@ class DeepgramSTTService:
                 return
 
             is_final = result.is_final
+            # speech_final: endpointing 기반 발화 종료 (utterance_end보다 빠름)
+            speech_final = getattr(result, "speech_final", False)
+
             await self.transcript_queue.put(
                 {
                     "type": "transcript",
                     "text": sentence,
                     "is_final": is_final,
+                    "speech_final": speech_final,
                 }
             )
 
-            if is_final:
+            if speech_final:
+                logger.info(f"[STT SpeechFinal] {sentence}")
+            elif is_final:
                 logger.info(f"[STT Final] {sentence}")
             else:
                 logger.info(f"[STT Partial] {sentence}")
