@@ -51,6 +51,9 @@ export type ConnectionStatus =
   | "connected"
   | "error";
 
+/** 아바타 타입 */
+export type AvatarType = "vrm" | "video";
+
 /** 내담자 케이스 정보 */
 export interface CaseInfo {
   id: string;
@@ -63,6 +66,8 @@ export interface CaseInfo {
   difficulty: string;
   description: string;
   session_goals: string[];
+  avatar_type?: AvatarType;
+  bp_avatar_id?: string;
 }
 
 /** 피드백 평가 항목 */

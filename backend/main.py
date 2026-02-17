@@ -125,6 +125,8 @@ async def list_cases():
                     "difficulty": data.get("difficulty", "beginner"),
                     "description": data.get("description", ""),
                     "session_goals": data.get("session_goals", []),
+                    "avatar_type": data.get("avatar_type", "vrm"),
+                    "bp_avatar_id": data.get("bp_avatar_id", ""),
                 })
             except Exception as e:
                 logger.warning(f"케이스 로드 실패: {case_path}: {e}")

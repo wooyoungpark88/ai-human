@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Anthropic
     ANTHROPIC_API_KEY: str = ""
 
+    # Beyond Presence (포토리얼 아바타)
+    BEYOND_PRESENCE_API_KEY: str = ""
+
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""

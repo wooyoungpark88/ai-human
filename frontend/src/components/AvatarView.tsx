@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { VRMScene } from "@/components/VRMScene";
 import type { VRM } from "@pixiv/three-vrm";
-import type { EmotionType } from "@/lib/types";
+import type { EmotionType, AvatarType } from "@/lib/types";
 import type { VRMAvatarControllers } from "@/hooks/useVRMAvatar";
 
 const EMOTION_GLOW: Record<string, string> = {
@@ -29,8 +29,13 @@ const EMOTION_BORDER: Record<string, string> = {
 };
 
 interface AvatarViewProps {
-  vrm: VRM | null;
-  controllers: VRMAvatarControllers;
+  avatarType?: AvatarType;
+  // VRM mode props
+  vrm?: VRM | null;
+  controllers?: VRMAvatarControllers;
+  // Video mode props
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
+  // Common props
   isLoading?: boolean;
   isInitialized?: boolean;
   error?: string | null;
@@ -39,8 +44,10 @@ interface AvatarViewProps {
 }
 
 export function AvatarView({
+  avatarType = "vrm",
   vrm,
   controllers,
+  videoRef,
   isLoading = false,
   isInitialized = false,
   error,
@@ -54,8 +61,44 @@ export function AvatarView({
       className={`relative overflow-hidden bg-black aspect-video w-full max-w-2xl mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
     >
       {/* VRM 아바타 */}
-      {isInitialized && vrm && (
+      {avatarType === "vrm" && isInitialized && vrm && controllers && (
         <VRMScene vrm={vrm} controllers={controllers} isLoading={isLoading} />
+      )}
+
+      {/* 비디오 아바타 (Beyond Presence) */}
+      {avatarType === "video" && isInitialized && (
+        <div className="absolute inset-0">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          {/* 데모 모드 오버레이 (API 키 없을 때) */}
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95 video-demo-placeholder">
+            <div className="text-center">
+              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <svg
+                  className="w-14 h-14 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                  />
+                </svg>
+              </div>
+              <p className="text-blue-300 text-sm font-medium">
+                AI Human Avatar
+              </p>
+              <p className="text-slate-500 text-xs mt-1">Beyond Presence</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 로딩 오버레이 */}
@@ -63,7 +106,11 @@ export function AvatarView({
         <div className="absolute inset-0 flex items-center justify-center bg-black/70">
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-            <p className="text-white text-sm">아바타 로딩 중...</p>
+            <p className="text-white text-sm">
+              {avatarType === "video"
+                ? "AI Human 연결 중..."
+                : "아바타 로딩 중..."}
+            </p>
           </div>
         </div>
       )}

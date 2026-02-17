@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AvatarView } from "@/components/AvatarView";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useMicrophone } from "@/hooks/useMicrophone";
 import { useVRMAvatar } from "@/hooks/useVRMAvatar";
+import { useVideoAvatar } from "@/hooks/useVideoAvatar";
 import { API_URL } from "@/lib/constants";
 import type {
   ChatMessage,
@@ -20,6 +21,7 @@ import type {
   ServerMessage,
   ConnectionStatus,
   CaseInfo,
+  AvatarType,
 } from "@/lib/types";
 
 export default function SessionPage() {
@@ -43,8 +45,38 @@ export default function SessionPage() {
   const messageIdRef = useRef(0);
   const partialTranscriptRef = useRef("");
 
-  // VRM 아바타 훅
-  const avatar = useVRMAvatar();
+  // 아바타 타입 결정 (케이스 정보에서)
+  const avatarType: AvatarType = caseInfo?.avatar_type || "vrm";
+
+  // 두 아바타 훅 모두 호출 (React 훅 규칙: 조건부 호출 불가)
+  const vrmAvatar = useVRMAvatar();
+  const videoAvatar = useVideoAvatar({
+    avatarId: caseInfo?.bp_avatar_id || undefined,
+  });
+
+  // 활성 아바타 선택
+  const avatar = useMemo(() => {
+    if (avatarType === "video") {
+      return {
+        isInitialized: videoAvatar.isInitialized,
+        isLoading: videoAvatar.isLoading,
+        error: videoAvatar.error,
+        initialize: videoAvatar.initialize,
+        sendBase64Audio: videoAvatar.sendBase64Audio,
+        setEmotion: videoAvatar.setEmotion,
+        close: videoAvatar.close,
+      };
+    }
+    return {
+      isInitialized: vrmAvatar.isInitialized,
+      isLoading: vrmAvatar.isLoading,
+      error: vrmAvatar.error,
+      initialize: vrmAvatar.initialize,
+      sendBase64Audio: vrmAvatar.sendBase64Audio,
+      setEmotion: vrmAvatar.setEmotion,
+      close: vrmAvatar.close,
+    };
+  }, [avatarType, vrmAvatar, videoAvatar]);
 
   // 케이스 정보 로드
   useEffect(() => {
@@ -277,6 +309,11 @@ export default function SessionPage() {
           <h1 className="text-lg font-bold">
             {caseInfo ? `${caseInfo.name} (${caseInfo.age}세)` : "상담 세션"}
           </h1>
+          {avatarType === "video" && (
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+              AI Human
+            </Badge>
+          )}
           <Badge variant="outline" className="gap-1.5 text-xs">
             <span
               className={`w-2 h-2 rounded-full ${getStatusColor(ws.status)}`}
@@ -312,8 +349,10 @@ export default function SessionPage() {
         {/* 왼쪽: 아바타 + 마이크 */}
         <div className="flex-1 flex flex-col items-center gap-4">
           <AvatarView
-            vrm={avatar.vrmRef.current}
-            controllers={avatar.controllers}
+            avatarType={avatarType}
+            vrm={avatarType === "vrm" ? vrmAvatar.vrmRef.current : undefined}
+            controllers={avatarType === "vrm" ? vrmAvatar.controllers : undefined}
+            videoRef={avatarType === "video" ? videoAvatar.videoRef : undefined}
             isLoading={avatar.isLoading}
             isInitialized={avatar.isInitialized}
             error={avatar.error}

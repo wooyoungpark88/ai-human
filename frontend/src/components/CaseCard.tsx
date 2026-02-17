@@ -28,6 +28,8 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
   const difficultyLabel = DIFFICULTY_LABELS[caseInfo.difficulty] || caseInfo.difficulty;
   const difficultyColor = DIFFICULTY_COLORS[caseInfo.difficulty] || "bg-gray-100 text-gray-800";
 
+  const isVideoAvatar = caseInfo.avatar_type === "video";
+
   return (
     <Card className="flex flex-col h-full hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -38,6 +40,11 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
           <Badge variant="secondary" className={difficultyColor}>
             {difficultyLabel}
           </Badge>
+          {isVideoAvatar && (
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              AI Human
+            </Badge>
+          )}
         </div>
         <CardTitle className="text-base">
           {caseInfo.name} ({caseInfo.age}세/{caseInfo.gender})

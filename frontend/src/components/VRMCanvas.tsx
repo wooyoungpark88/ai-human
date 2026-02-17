@@ -35,16 +35,16 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
   useFrame((state, delta) => {
     const elapsed = state.clock.elapsedTime;
 
-    // vrm.update()를 먼저 호출 (표정, 스프링본 등 업데이트)
-    vrm.update(delta);
-
-    // 그 다음 컨트롤러들이 본을 조작 (vrm.update 이후에 적용되어야 덮어씌워지지 않음)
+    // 1. 컨트롤러가 본/표정을 조작
     controllers.blink?.update(delta, elapsed);
     controllers.idle?.update(delta, elapsed);
     controllers.gesture?.update(delta, elapsed);
     controllers.expression?.updateIdle(delta, elapsed);
     controllers.expression?.update(delta);
     controllers.lipSync?.update(delta);
+
+    // 2. vrm.update()를 마지막에 호출 — 스프링본이 최신 본 위치를 반영
+    vrm.update(delta);
   });
 
   return null;
