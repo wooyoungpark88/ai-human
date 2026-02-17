@@ -20,70 +20,68 @@ interface ArmPose {
  */
 const EMOTION_GESTURES: Record<EmotionType, ArmPose> = {
   neutral: {
-    leftShoulder: { z: 0.1 },
-    leftUpperArm: { z: 1.1, x: 0.15 },
-    leftLowerArm: { z: -0.15, x: 0 },
-    rightShoulder: { z: -0.1 },
-    rightUpperArm: { z: -1.1, x: 0.15 },
-    rightLowerArm: { z: 0.15, x: 0 },
+    leftShoulder: { z: 0.15 },
+    leftUpperArm: { z: 1.5, x: 0.2 },
+    leftLowerArm: { z: -0.3, x: 0 },
+    rightShoulder: { z: -0.15 },
+    rightUpperArm: { z: -1.5, x: 0.2 },
+    rightLowerArm: { z: 0.3, x: 0 },
   },
   happy: {
-    leftShoulder: { z: 0.05 },
-    leftUpperArm: { z: 0.9, x: 0.1 },
-    leftLowerArm: { z: -0.1, x: 0 },
-    rightShoulder: { z: -0.05 },
-    rightUpperArm: { z: -0.9, x: 0.1 },
-    rightLowerArm: { z: 0.1, x: 0 },
+    leftShoulder: { z: 0.08 },
+    leftUpperArm: { z: 1.2, x: 0.15 },
+    leftLowerArm: { z: -0.2, x: 0 },
+    rightShoulder: { z: -0.08 },
+    rightUpperArm: { z: -1.2, x: 0.15 },
+    rightLowerArm: { z: 0.2, x: 0 },
   },
   sad: {
-    leftShoulder: { z: 0.2 },
-    leftUpperArm: { z: 1.25, x: 0.25 },
-    leftLowerArm: { z: -0.2, x: 0.05 },
-    rightShoulder: { z: -0.2 },
-    rightUpperArm: { z: -1.25, x: 0.25 },
-    rightLowerArm: { z: 0.2, x: 0.05 },
+    leftShoulder: { z: 0.25 },
+    leftUpperArm: { z: 1.6, x: 0.3 },
+    leftLowerArm: { z: -0.35, x: 0.05 },
+    rightShoulder: { z: -0.25 },
+    rightUpperArm: { z: -1.6, x: 0.3 },
+    rightLowerArm: { z: 0.35, x: 0.05 },
   },
   angry: {
-    leftShoulder: { z: 0.15 },
-    leftUpperArm: { z: 0.95, x: 0.2 },
-    leftLowerArm: { z: -0.3, x: 0.1 },
-    rightShoulder: { z: -0.15 },
-    rightUpperArm: { z: -0.95, x: 0.2 },
-    rightLowerArm: { z: 0.3, x: 0.1 },
+    leftShoulder: { z: 0.2 },
+    leftUpperArm: { z: 1.25, x: 0.25 },
+    leftLowerArm: { z: -0.4, x: 0.1 },
+    rightShoulder: { z: -0.2 },
+    rightUpperArm: { z: -1.25, x: 0.25 },
+    rightLowerArm: { z: 0.4, x: 0.1 },
   },
   surprised: {
     leftShoulder: { z: 0.0 },
-    leftUpperArm: { z: 0.8, x: 0.1 },
-    leftLowerArm: { z: -0.1, x: -0.1 },
+    leftUpperArm: { z: 1.1, x: 0.15 },
+    leftLowerArm: { z: -0.15, x: -0.1 },
     rightShoulder: { z: 0.0 },
-    rightUpperArm: { z: -0.8, x: 0.1 },
-    rightLowerArm: { z: 0.1, x: -0.1 },
+    rightUpperArm: { z: -1.1, x: 0.15 },
+    rightLowerArm: { z: 0.15, x: -0.1 },
   },
   thinking: {
-    // 한쪽 팔을 살짝 올림 (턱에 손 대는 듯한 느낌)
-    leftShoulder: { z: 0.1 },
-    leftUpperArm: { z: 1.1, x: 0.15 },
-    leftLowerArm: { z: -0.15, x: 0 },
-    rightShoulder: { z: -0.05 },
-    rightUpperArm: { z: -0.7, x: 0.4 },
-    rightLowerArm: { z: 0.4, x: 0.3 },
+    leftShoulder: { z: 0.15 },
+    leftUpperArm: { z: 1.5, x: 0.2 },
+    leftLowerArm: { z: -0.3, x: 0 },
+    rightShoulder: { z: -0.08 },
+    rightUpperArm: { z: -0.95, x: 0.5 },
+    rightLowerArm: { z: 0.5, x: 0.35 },
   },
   anxious: {
-    // 팔을 몸 가까이, 약간 움츠린 자세
-    leftShoulder: { z: 0.25 },
-    leftUpperArm: { z: 1.15, x: 0.35 },
-    leftLowerArm: { z: -0.3, x: 0.15 },
-    rightShoulder: { z: -0.25 },
-    rightUpperArm: { z: -1.15, x: 0.35 },
-    rightLowerArm: { z: 0.3, x: 0.15 },
+    leftShoulder: { z: 0.3 },
+    leftUpperArm: { z: 1.5, x: 0.4 },
+    leftLowerArm: { z: -0.4, x: 0.15 },
+    rightShoulder: { z: -0.3 },
+    rightUpperArm: { z: -1.5, x: 0.4 },
+    rightLowerArm: { z: 0.4, x: 0.15 },
   },
   empathetic: {
-    leftShoulder: { z: 0.08 },
-    leftUpperArm: { z: 1.0, x: 0.15 },
-    leftLowerArm: { z: -0.12, x: 0 },
-    rightShoulder: { z: -0.08 },
-    rightUpperArm: { z: -1.0, x: 0.15 },
-    rightLowerArm: { z: 0.12, x: 0 },
+    leftShoulder: { z: 0.1 },
+    leftUpperArm: { z: 1.35, x: 0.2 },
+    leftLowerArm: { z: -0.25, x: 0 },
+    rightShoulder: { z: -0.1 },
+    rightUpperArm: { z: -1.35, x: 0.2 },
+    rightLowerArm: { z: 0.25, x: 0 },
   },
 };
 
@@ -122,6 +120,7 @@ export class GestureController {
   private currentPose: ArmPose;
   private targetPose: ArmPose;
   private transitionSpeed = 1.5;
+  private loggedOnce = false;
 
   // 미세 움직임 (손이 완전히 정지하지 않게)
   private fidgetPhase = Math.random() * Math.PI * 2;
@@ -143,6 +142,16 @@ export class GestureController {
   update(delta: number, elapsedTime: number): void {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
+
+    if (!this.loggedOnce) {
+      this.loggedOnce = true;
+      const lua = humanoid.getNormalizedBoneNode("leftUpperArm");
+      const rua = humanoid.getNormalizedBoneNode("rightUpperArm");
+      console.log("[Gesture] leftUpperArm bone:", lua ? "found" : "NULL",
+        "| rightUpperArm bone:", rua ? "found" : "NULL",
+        "| target L.z:", this.targetPose.leftUpperArm.z,
+        "| target R.z:", this.targetPose.rightUpperArm.z);
+    }
 
     this.fidgetPhase += delta;
 

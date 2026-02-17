@@ -17,7 +17,7 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
 
   useEffect(() => {
     // 가슴 중앙을 바라보도록 설정 (머리가 잘리지 않도록)
-    camera.lookAt(0, 1.0, 0);
+    camera.lookAt(0, 1.15, 0);
   }, [camera]);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ interface VRMCanvasProps {
 export default function VRMCanvas({ vrm, controllers }: VRMCanvasProps) {
   return (
     <Canvas
-      camera={{ position: [0, 1.0, 1.5], fov: 35, near: 0.1, far: 100 }}
+      camera={{ position: [0, 1.25, 0.85], fov: 35, near: 0.1, far: 100 }}
       dpr={[1, 1.5]}
       style={{ width: "100%", height: "100%" }}
       gl={{ antialias: true, alpha: true }}
