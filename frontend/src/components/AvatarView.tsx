@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { VRMScene } from "@/components/VRMScene";
 import type { VRM } from "@pixiv/three-vrm";
@@ -56,6 +57,20 @@ export function AvatarView({
   const glowClass = EMOTION_GLOW[currentEmotion] ?? EMOTION_GLOW.neutral;
   const borderClass = EMOTION_BORDER[currentEmotion] ?? EMOTION_BORDER.neutral;
 
+  // 비디오 스트림이 활성화되면 데모 오버레이 숨김
+  const [hasVideoStream, setHasVideoStream] = useState(false);
+  useEffect(() => {
+    const el = videoRef?.current;
+    if (!el) return;
+    const observer = new MutationObserver(() => {
+      setHasVideoStream(el.dataset.hasStream === "true");
+    });
+    observer.observe(el, { attributes: true, attributeFilter: ["data-has-stream"] });
+    // 초기 상태도 체크
+    setHasVideoStream(el.dataset.hasStream === "true");
+    return () => observer.disconnect();
+  }, [videoRef, isInitialized]);
+
   return (
     <Card
       className={`relative overflow-hidden bg-black aspect-video w-full max-w-2xl mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
@@ -74,8 +89,8 @@ export function AvatarView({
             playsInline
             className="w-full h-full object-cover"
           />
-          {/* 데모 모드 오버레이 (API 키 없을 때) */}
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95 video-demo-placeholder">
+          {/* 데모 모드 오버레이 (비디오 스트림 없을 때) */}
+          {!hasVideoStream && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95 video-demo-placeholder">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <svg
@@ -97,7 +112,7 @@ export function AvatarView({
               </p>
               <p className="text-slate-500 text-xs mt-1">Beyond Presence</p>
             </div>
-          </div>
+          </div>}
         </div>
       )}
 
