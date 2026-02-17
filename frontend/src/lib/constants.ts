@@ -18,6 +18,38 @@ export const AUDIO_CONFIG = {
   bitsPerSample: 16,
 } as const;
 
+/** 케이스 카테고리 레이블 */
+export const CATEGORY_LABELS: Record<string, string> = {
+  burnout: "번아웃",
+  anxiety: "불안",
+  relationship: "관계",
+  depression: "우울",
+  self_esteem: "자존감",
+};
+
+/** 케이스 카테고리 색상 */
+export const CATEGORY_COLORS: Record<string, string> = {
+  burnout: "bg-orange-100 text-orange-800",
+  anxiety: "bg-purple-100 text-purple-800",
+  relationship: "bg-pink-100 text-pink-800",
+  depression: "bg-blue-100 text-blue-800",
+  self_esteem: "bg-green-100 text-green-800",
+};
+
+/** 난이도 레이블 */
+export const DIFFICULTY_LABELS: Record<string, string> = {
+  beginner: "초급",
+  intermediate: "중급",
+  advanced: "고급",
+};
+
+/** 난이도 색상 */
+export const DIFFICULTY_COLORS: Record<string, string> = {
+  beginner: "bg-emerald-100 text-emerald-800",
+  intermediate: "bg-amber-100 text-amber-800",
+  advanced: "bg-red-100 text-red-800",
+};
+
 /** 감정별 UI 매핑 */
 export const EMOTION_MAP: Record<EmotionType, EmotionInfo> = {
   neutral: { label: "평온", emoji: "😐", color: "bg-gray-100 text-gray-800" },

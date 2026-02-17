@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Avatar - 실시간 대화",
-  description: "AI 아바타와 실시간 음성 대화 시스템",
+  title: "AI 상담 훈련 플랫폼",
+  description: "AI 내담자와 상담 실습을 통해 상담 역량을 키우세요",
 };
 
 export default function RootLayout({

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel as PydanticBaseModel
 
 from backend.config import settings
 from backend.models.schemas import EmotionType, ServerMessage, ClientProfile
@@ -18,6 +19,7 @@ from backend.services.llm_service import ClaudeLLMService
 from backend.services.tts_service import ElevenLabsTTSService
 from backend.services.emotion_mapper import get_emotion_mapping
 from backend.services import supabase_service
+from backend.services.feedback_service import FeedbackService
 
 PROFILES_DIR = Path(__file__).resolve().parent / "client_profiles"
 CASE_PROFILES_DIR = Path(__file__).resolve().parent / "case_profiles"
@@ -148,6 +150,40 @@ async def get_case_detail(case_id: str):
         return {"error": "케이스 로드 중 오류가 발생했습니다."}
 
 
+class FeedbackMessageItem(PydanticBaseModel):
+    role: str
+    text: str
+
+class FeedbackRequest(PydanticBaseModel):
+    case_id: str
+    messages: list[FeedbackMessageItem]
+
+feedback_service = FeedbackService()
+
+@app.post("/api/feedback/generate")
+async def generate_feedback(request: FeedbackRequest):
+    """상담 세션의 피드백을 생성합니다."""
+    # 케이스 정보 로드
+    case_path = CASE_PROFILES_DIR / f"{request.case_id}.json"
+    case_info = {}
+    if case_path.exists():
+        with open(case_path, "r", encoding="utf-8") as f:
+            case_info = json.load(f)
+
+    messages = [{"role": m.role, "text": m.text} for m in request.messages]
+
+    try:
+        feedback = await feedback_service.generate_feedback(
+            case_id=request.case_id,
+            case_info=case_info,
+            messages=messages,
+        )
+        return feedback.model_dump()
+    except Exception as e:
+        logger.error(f"피드백 생성 실패: {e}")
+        return {"error": f"피드백 생성 중 오류: {str(e)}"}
+
+
 class ConversationSession:
     """개별 대화 세션을 관리합니다."""
 
@@ -163,13 +199,17 @@ class ConversationSession:
         self._conversation_lock = asyncio.Lock()
         self.conversation_id: str | None = None
         self.user_id: str | None = None
+        self.case_id: str | None = None
+        self.case_profile = None
 
     async def initialize(self, case_id: str = "burnout_beginner") -> None:
         """세션을 초기화합니다."""
+        self.case_id = case_id
+
         # 케이스 프로필 로드 (case_profiles/ 디렉토리)
-        case_profile = self.llm_service.load_case_profile(case_id)
-        if case_profile:
-            logger.info(f"[Case] 케이스 '{case_profile.name}' 로드 완료 ({case_profile.presenting_issue})")
+        self.case_profile = self.llm_service.load_case_profile(case_id)
+        if self.case_profile:
+            logger.info(f"[Case] 케이스 '{self.case_profile.name}' 로드 완료 ({self.case_profile.presenting_issue})")
         else:
             # fallback: 기존 프로필 시스템
             profile = supabase_service.load_profile(case_id)
@@ -181,13 +221,19 @@ class ConversationSession:
                 if profile:
                     logger.info(f"[File] 프로필 '{profile.name}' 로드 완료")
 
+        # conversation_id 생성 (Supabase 가용 시)
+        self.conversation_id = supabase_service.create_conversation(
+            user_id=self.user_id or "anonymous",
+            profile_id=case_id,
+        )
+
         # Deepgram STT 연결 (실패해도 세션은 계속 유지)
         self.stt_available = await self.stt_service.connect()
         if not self.stt_available:
             logger.warning("STT 비활성 - 텍스트 입력 모드로 전환")
 
         self.is_active = True
-        logger.info(f"대화 세션 초기화 완료 (STT: {'활성' if self.stt_available else '비활성'})")
+        logger.info(f"대화 세션 초기화 완료 (STT: {'활성' if self.stt_available else '비활성'}, conversation_id: {self.conversation_id})")
 
     async def cleanup(self) -> None:
         """세션 정리"""

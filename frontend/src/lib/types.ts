@@ -64,3 +64,23 @@ export interface CaseInfo {
   description: string;
   session_goals: string[];
 }
+
+/** 피드백 평가 항목 */
+export interface FeedbackCategory {
+  name: string;
+  name_en: string;
+  score: number;
+  comment: string;
+}
+
+/** 상담 세션 피드백 결과 */
+export interface SessionFeedback {
+  session_id: string;
+  case_id: string;
+  overall_score: number;
+  categories: FeedbackCategory[];
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+  recommendations: string[];
+}

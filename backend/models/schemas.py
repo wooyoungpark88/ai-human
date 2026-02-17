@@ -87,3 +87,23 @@ class CaseProfile(BaseModel):
     system_prompt: str
     voice_id: Optional[str] = None
     face_id: Optional[str] = None
+
+
+class FeedbackCategory(BaseModel):
+    """피드백 평가 항목"""
+    name: str
+    name_en: str
+    score: float
+    comment: str
+
+
+class SessionFeedback(BaseModel):
+    """상담 세션 피드백 결과"""
+    session_id: str = ""
+    case_id: str = ""
+    overall_score: float
+    categories: list[FeedbackCategory]
+    summary: str
+    strengths: list[str]
+    improvements: list[str]
+    recommendations: list[str]

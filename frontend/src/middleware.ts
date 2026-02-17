@@ -11,10 +11,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 로그인된 상태에서 로그인 페이지 접근 시 -> 메인 페이지로 리디렉트
+  // 로그인된 상태에서 로그인 페이지 접근 시 -> 케이스 목록으로 리디렉트
   if (session && isLoginPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/cases";
     return NextResponse.redirect(url);
   }
 
