@@ -67,7 +67,7 @@ export interface CaseInfo {
   description: string;
   session_goals: string[];
   avatar_type?: AvatarType;
-  bp_avatar_id?: string;
+  bp_agent_id?: string;
 }
 
 /** 피드백 평가 항목 */

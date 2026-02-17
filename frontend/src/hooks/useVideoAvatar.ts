@@ -10,7 +10,7 @@ const BP_API_URL =
 const BP_API_KEY = process.env.NEXT_PUBLIC_BEYOND_PRESENCE_API_KEY || "";
 
 interface UseVideoAvatarOptions {
-  avatarId?: string;
+  agentId?: string;
 }
 
 /**
@@ -24,7 +24,7 @@ interface UseVideoAvatarOptions {
  * 기존 useVRMAvatar와 동일한 인터페이스 노출.
  */
 export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
-  const { avatarId } = options;
+  const { agentId } = options;
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,13 +56,13 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
 
       // 1. Beyond Presence /v1/calls 로 세션 생성
       const callBody: Record<string, unknown> = {};
-      if (avatarId) {
-        callBody.avatar_id = avatarId;
+      if (agentId) {
+        callBody.agent_id = agentId;
       }
 
       console.log("[VideoAvatar] Beyond Presence 세션 생성 중...", {
         url: `${BP_API_URL}/calls`,
-        avatarId,
+        agentId,
       });
 
       const callRes = await fetch(`${BP_API_URL}/calls`, {
@@ -147,7 +147,7 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
       setIsInitialized(true);
       setIsLoading(false);
       console.log(
-        `[VideoAvatar] 초기화 완료 -- Beyond Presence 연결됨 (avatar: ${avatarId || "default"})`
+        `[VideoAvatar] 초기화 완료 -- Beyond Presence 연결됨 (agent: ${agentId || "default"})`
       );
     } catch (err) {
       const message =
@@ -156,7 +156,7 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
       setIsLoading(false);
       console.error("[VideoAvatar] 초기화 오류:", err);
     }
-  }, [avatarId]);
+  }, [agentId]);
 
   const sendBase64Audio = useCallback((base64Audio: string) => {
     // 로컬 오디오 재생 (항상)

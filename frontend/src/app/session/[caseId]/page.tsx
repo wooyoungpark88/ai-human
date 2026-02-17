@@ -51,7 +51,7 @@ export default function SessionPage() {
   // 두 아바타 훅 모두 호출 (React 훅 규칙: 조건부 호출 불가)
   const vrmAvatar = useVRMAvatar();
   const videoAvatar = useVideoAvatar({
-    avatarId: caseInfo?.bp_avatar_id || undefined,
+    agentId: caseInfo?.bp_agent_id || undefined,
   });
 
   // 활성 아바타 선택
