@@ -9,12 +9,14 @@ import { ExpressionController } from "@/lib/avatar/ExpressionController";
 import { LipSyncController } from "@/lib/avatar/LipSyncController";
 import { BlinkController } from "@/lib/avatar/BlinkController";
 import { IdleAnimationController } from "@/lib/avatar/IdleAnimationController";
+import { GestureController } from "@/lib/avatar/GestureController";
 
 export interface VRMAvatarControllers {
   expression: ExpressionController | null;
   lipSync: LipSyncController | null;
   blink: BlinkController | null;
   idle: IdleAnimationController | null;
+  gesture: GestureController | null;
 }
 
 const EMPTY_CONTROLLERS: VRMAvatarControllers = {
@@ -22,6 +24,7 @@ const EMPTY_CONTROLLERS: VRMAvatarControllers = {
   lipSync: null,
   blink: null,
   idle: null,
+  gesture: null,
 };
 
 export function useVRMAvatar() {
@@ -69,11 +72,13 @@ export function useVRMAvatar() {
       // 컨트롤러 초기화
       const analyser = audioPlayer.getAnalyser();
       const expressionCtrl = new ExpressionController(vrm);
+      const gestureCtrl = new GestureController(vrm);
       const newControllers: VRMAvatarControllers = {
         expression: expressionCtrl,
         lipSync: analyser ? new LipSyncController(vrm, analyser, expressionCtrl) : null,
         blink: new BlinkController(vrm),
         idle: new IdleAnimationController(vrm),
+        gesture: gestureCtrl,
       };
       controllersRef.current = newControllers;
       setControllers(newControllers); // React 리렌더 트리거
@@ -103,6 +108,7 @@ export function useVRMAvatar() {
 
   const setEmotion = useCallback((emotion: EmotionType, intensity: number) => {
     controllersRef.current.expression?.setEmotion(emotion, intensity);
+    controllersRef.current.gesture?.setEmotion(emotion, intensity);
   }, []);
 
   const close = useCallback(() => {
@@ -111,6 +117,7 @@ export function useVRMAvatar() {
     controllersRef.current.lipSync?.dispose();
     controllersRef.current.blink?.dispose();
     controllersRef.current.idle?.dispose();
+    controllersRef.current.gesture?.dispose();
     controllersRef.current = EMPTY_CONTROLLERS;
     setControllers(EMPTY_CONTROLLERS);
 

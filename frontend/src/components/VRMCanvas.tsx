@@ -41,6 +41,7 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
     // 그 다음 컨트롤러들이 본을 조작 (vrm.update 이후에 적용되어야 덮어씌워지지 않음)
     controllers.blink?.update(delta, elapsed);
     controllers.idle?.update(delta, elapsed);
+    controllers.gesture?.update(delta, elapsed);
     controllers.expression?.updateIdle(delta, elapsed);
     controllers.expression?.update(delta);
     controllers.lipSync?.update(delta);
