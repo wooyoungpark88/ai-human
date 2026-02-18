@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConversationPhase, EmotionType } from "@/lib/types";
-import { AudioStreamPlayer } from "@/lib/audio/AudioStreamPlayer";
 
 const SIMLI_API_KEY = process.env.NEXT_PUBLIC_SIMLI_API_KEY || "";
 
@@ -30,7 +29,6 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const simliClientRef = useRef<import("simli-client").SimliClient | null>(null);
-  const audioPlayerRef = useRef<AudioStreamPlayer | null>(null);
 
   const initialize = useCallback(async () => {
     try {
@@ -40,9 +38,6 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
       // API 키 확인
       if (!SIMLI_API_KEY) {
         console.warn("[SimliAvatar] SIMLI_API_KEY 미설정 -- 데모 모드");
-        const audioPlayer = new AudioStreamPlayer();
-        await audioPlayer.init();
-        audioPlayerRef.current = audioPlayer;
         setIsInitialized(true);
         setIsLoading(false);
         return;
@@ -116,11 +111,6 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
       const silence = new Uint8Array(6000).fill(0);
       client.sendAudioData(silence);
 
-      // 오디오 재생기 (로컬 오디오 재생)
-      const audioPlayer = new AudioStreamPlayer();
-      await audioPlayer.init();
-      audioPlayerRef.current = audioPlayer;
-
       setIsInitialized(true);
       setIsLoading(false);
       console.log("[SimliAvatar] 초기화 완료 -- Simli 연결됨");
@@ -134,10 +124,7 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
   }, [faceId]);
 
   const sendBase64Audio = useCallback((base64Audio: string) => {
-    // 로컬 오디오 재생
-    audioPlayerRef.current?.feedBase64Chunk(base64Audio);
-
-    // Simli에 PCM16 오디오 전달
+    // Simli에 PCM16 오디오 전달 (Simli가 <audio> 엘리먼트로 오디오 반환 재생)
     const client = simliClientRef.current;
     if (client) {
       try {
@@ -177,9 +164,6 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
       videoRef.current.srcObject = null;
       videoRef.current.dataset.hasStream = "false";
     }
-
-    audioPlayerRef.current?.dispose();
-    audioPlayerRef.current = null;
 
     setIsInitialized(false);
     console.log("[SimliAvatar] 세션 종료");
