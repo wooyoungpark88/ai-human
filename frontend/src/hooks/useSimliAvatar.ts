@@ -56,7 +56,7 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
       console.log("[SimliAvatar] Simli 세션 생성 중...", { faceId: resolvedFaceId });
 
       // simli-client 동적 임포트 (SSR 방지)
-      const { SimliClient, generateSimliSessionToken, generateIceServers } =
+      const { SimliClient, generateSimliSessionToken } =
         await import("simli-client");
 
       // 1. 세션 토큰 발급
@@ -75,21 +75,19 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
 
       console.log("[SimliAvatar] 세션 토큰 발급 완료");
 
-      // 2. ICE 서버 가져오기 (P2P 모드)
-      const iceServers = await generateIceServers(SIMLI_API_KEY, "https://api.simli.ai");
-      console.log("[SimliAvatar] ICE 서버 획득 완료");
-
-      // 3. video/audio 엘리먼트 확인
+      // 2. video/audio 엘리먼트 확인
       if (!videoRef.current || !audioRef.current) {
         throw new Error("Simli video/audio 엘리먼트가 마운트되지 않았습니다");
       }
 
-      // 4. SimliClient 생성 및 연결
+      // 3. SimliClient 생성 (LiveKit 모드 — P2P는 기업 방화벽에서 타임아웃 발생)
       const client = new SimliClient(
         tokenData.session_token,
         videoRef.current,
         audioRef.current,
-        iceServers,
+        null,       // iceServers (LiveKit 모드에서 불필요)
+        undefined,  // logLevel (기본값)
+        "livekit",  // transport_mode — P2P 타임아웃 회피
       );
 
       simliClientRef.current = client;
