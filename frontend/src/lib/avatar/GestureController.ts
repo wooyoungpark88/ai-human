@@ -254,13 +254,51 @@ export class GestureController {
     return baseline.z >= 0 ? 1 : -1;
   }
 
+  private resolveArmDownSign(
+    upperBone: "leftUpperArm" | "rightUpperArm",
+    lowerBone: "leftLowerArm" | "rightLowerArm",
+    fallback: 1 | -1,
+  ): 1 | -1 {
+    const humanoid = this.vrm.humanoid;
+    if (!humanoid) return fallback;
+
+    const baseline = this.baselinePose[upperBone];
+    const lower = humanoid.getNormalizedBoneNode(lowerBone as VRMHumanBoneName);
+    if (!baseline || !lower) return fallback;
+
+    const lowerOffset = lower.position.clone();
+    if (lowerOffset.lengthSq() < 1e-6) return fallback;
+
+    let bestSign: 1 | -1 = fallback;
+    let bestY = Number.POSITIVE_INFINITY;
+    const zMagnitude = 1.0;
+    const xTilt = 0.16;
+
+    for (const sign of [-1, 1] as const) {
+      this._euler.set(xTilt, 0, sign * zMagnitude, "XYZ");
+      this._deltaQuat.setFromEuler(this._euler);
+      this._targetQuat.copy(baseline).multiply(this._deltaQuat);
+
+      const dir = lowerOffset.clone().applyQuaternion(this._targetQuat);
+      if (dir.y < bestY) {
+        bestY = dir.y;
+        bestSign = sign;
+      }
+    }
+
+    if (DEV) {
+      console.log(`[Gesture] ${upperBone} down-sign=${bestSign} (bestY=${bestY.toFixed(4)})`);
+    }
+    return bestSign;
+  }
+
   /**
    * baseline이 T-pose일 수 있으므로 idle에서도 팔이 내려오도록
    * 모델 기준 오프셋을 한 번 계산해 둔다.
    */
   private computeRestPose(): void {
-    const leftSign = this.getBoneSign("leftUpperArm", 1);
-    const rightSign = this.getBoneSign("rightUpperArm", -1);
+    const leftSign = this.resolveArmDownSign("leftUpperArm", "leftLowerArm", -this.getBoneSign("leftUpperArm", 1) as 1 | -1);
+    const rightSign = this.resolveArmDownSign("rightUpperArm", "rightLowerArm", -this.getBoneSign("rightUpperArm", -1) as 1 | -1);
 
     this.restPose = createPose({
       leftShoulder: { z: 0.1 * leftSign },
