@@ -67,6 +67,36 @@ export function useVRMAvatar() {
       VRMUtils.rotateVRM0(vrm);
       console.log("[VRM] Meta version:", vrm.meta?.metaVersion,
         "| Rotation applied:", vrm.scene.rotation.y.toFixed(2));
+
+      // --- 스프링본 진단 ---
+      const sbm = (vrm as unknown as { springBoneManager?: { joints: Array<{ bone: { name: string }; settings: { stiffness: number } }> } }).springBoneManager;
+      if (sbm && sbm.joints) {
+        const jointNames = sbm.joints.map((j: { bone: { name: string } }) => j.bone.name);
+        console.log("[VRM] Spring bone joints:", jointNames.length, jointNames);
+
+        // 팔/어깨 관련 스프링본이 있는지 확인
+        const armKeywords = ["arm", "shoulder", "Arm", "Shoulder", "Upper", "Lower", "Hand", "upper", "lower"];
+        const armJoints = jointNames.filter((n: string) => armKeywords.some((k) => n.includes(k)));
+        if (armJoints.length > 0) {
+          console.warn("[VRM] ⚠️ 팔/어깨에 스프링본 발견:", armJoints);
+        }
+      } else {
+        console.log("[VRM] Spring bone manager: 없음");
+      }
+
+      // --- 팔 bone 존재 확인 ---
+      const humanoid = vrm.humanoid;
+      if (humanoid) {
+        const rawL = humanoid.getRawBoneNode("leftUpperArm");
+        const rawR = humanoid.getRawBoneNode("rightUpperArm");
+        const normL = humanoid.getNormalizedBoneNode("leftUpperArm");
+        const normR = humanoid.getNormalizedBoneNode("rightUpperArm");
+        console.log("[VRM] Raw leftUpperArm:", rawL?.name ?? "NULL",
+          "| Raw rightUpperArm:", rawR?.name ?? "NULL");
+        console.log("[VRM] Norm leftUpperArm:", normL ? "exists(uuid:" + normL.uuid.slice(0, 8) + ")" : "NULL",
+          "| Norm rightUpperArm:", normR ? "exists(uuid:" + normR.uuid.slice(0, 8) + ")" : "NULL");
+      }
+
       vrmRef.current = vrm;
 
       // 오디오 플레이어 초기화
