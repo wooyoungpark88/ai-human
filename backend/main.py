@@ -127,6 +127,7 @@ async def list_cases():
                     "session_goals": data.get("session_goals", []),
                     "avatar_type": data.get("avatar_type", "vrm"),
                     "bp_agent_id": data.get("bp_agent_id", ""),
+                    "simli_face_id": data.get("simli_face_id", ""),
                 })
             except Exception as e:
                 logger.warning(f"케이스 로드 실패: {case_path}: {e}")

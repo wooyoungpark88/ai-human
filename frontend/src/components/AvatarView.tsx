@@ -34,8 +34,10 @@ interface AvatarViewProps {
   // VRM mode props
   vrm?: VRM | null;
   controllers?: VRMAvatarControllers;
-  // Video mode props
+  // Video mode props (Beyond Presence / Simli 공용)
   videoRef?: React.RefObject<HTMLVideoElement | null>;
+  // Simli 전용 — 오디오 엘리먼트
+  audioRef?: React.RefObject<HTMLAudioElement | null>;
   // Common props
   isLoading?: boolean;
   isInitialized?: boolean;
@@ -49,6 +51,7 @@ export function AvatarView({
   vrm,
   controllers,
   videoRef,
+  audioRef,
   isLoading = false,
   isInitialized = false,
   error,
@@ -116,6 +119,44 @@ export function AvatarView({
         </div>
       )}
 
+      {/* Simli 아바타 */}
+      {avatarType === "simli" && isInitialized && (
+        <div className="absolute inset-0">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          {/* Simli 오디오 엘리먼트 (립싱크용, 숨김) */}
+          <audio ref={audioRef} autoPlay />
+          {/* 데모 모드 오버레이 (비디오 스트림 없을 때) */}
+          {!hasVideoStream && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95">
+            <div className="text-center">
+              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                <svg
+                  className="w-14 h-14 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                  />
+                </svg>
+              </div>
+              <p className="text-purple-300 text-sm font-medium">
+                AI Avatar
+              </p>
+              <p className="text-slate-500 text-xs mt-1">Simli</p>
+            </div>
+          </div>}
+        </div>
+      )}
+
       {/* 로딩 오버레이 */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70">
@@ -123,8 +164,10 @@ export function AvatarView({
             <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
             <p className="text-white text-sm">
               {avatarType === "video"
-                ? "AI Human 연결 중..."
-                : "아바타 로딩 중..."}
+                ? "Beyond Presence 연결 중..."
+                : avatarType === "simli"
+                  ? "Simli 연결 중..."
+                  : "아바타 로딩 중..."}
             </p>
           </div>
         </div>

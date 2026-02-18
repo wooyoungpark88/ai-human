@@ -14,6 +14,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { useMicrophone } from "@/hooks/useMicrophone";
 import { useVRMAvatar } from "@/hooks/useVRMAvatar";
 import { useVideoAvatar } from "@/hooks/useVideoAvatar";
+import { useSimliAvatar } from "@/hooks/useSimliAvatar";
 import { API_URL } from "@/lib/constants";
 import type {
   ChatMessage,
@@ -48,10 +49,13 @@ export default function SessionPage() {
   // 아바타 타입 결정 (케이스 정보에서)
   const avatarType: AvatarType = caseInfo?.avatar_type || "vrm";
 
-  // 두 아바타 훅 모두 호출 (React 훅 규칙: 조건부 호출 불가)
+  // 모든 아바타 훅 호출 (React 훅 규칙: 조건부 호출 불가)
   const vrmAvatar = useVRMAvatar();
   const videoAvatar = useVideoAvatar({
     agentId: caseInfo?.bp_agent_id || undefined,
+  });
+  const simliAvatar = useSimliAvatar({
+    faceId: caseInfo?.simli_face_id || undefined,
   });
 
   // 활성 아바타 선택
@@ -67,6 +71,17 @@ export default function SessionPage() {
         close: videoAvatar.close,
       };
     }
+    if (avatarType === "simli") {
+      return {
+        isInitialized: simliAvatar.isInitialized,
+        isLoading: simliAvatar.isLoading,
+        error: simliAvatar.error,
+        initialize: simliAvatar.initialize,
+        sendBase64Audio: simliAvatar.sendBase64Audio,
+        setEmotion: simliAvatar.setEmotion,
+        close: simliAvatar.close,
+      };
+    }
     return {
       isInitialized: vrmAvatar.isInitialized,
       isLoading: vrmAvatar.isLoading,
@@ -76,7 +91,7 @@ export default function SessionPage() {
       setEmotion: vrmAvatar.setEmotion,
       close: vrmAvatar.close,
     };
-  }, [avatarType, vrmAvatar, videoAvatar]);
+  }, [avatarType, vrmAvatar, videoAvatar, simliAvatar]);
 
   // 케이스 정보 로드
   useEffect(() => {
@@ -311,7 +326,12 @@ export default function SessionPage() {
           </h1>
           {avatarType === "video" && (
             <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
-              AI Human
+              Beyond Presence
+            </Badge>
+          )}
+          {avatarType === "simli" && (
+            <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs">
+              Simli
             </Badge>
           )}
           <Badge variant="outline" className="gap-1.5 text-xs">
@@ -352,7 +372,8 @@ export default function SessionPage() {
             avatarType={avatarType}
             vrm={avatarType === "vrm" ? vrmAvatar.vrmRef.current : undefined}
             controllers={avatarType === "vrm" ? vrmAvatar.controllers : undefined}
-            videoRef={avatarType === "video" ? videoAvatar.videoRef : undefined}
+            videoRef={avatarType === "video" ? videoAvatar.videoRef : avatarType === "simli" ? simliAvatar.videoRef : undefined}
+            audioRef={avatarType === "simli" ? simliAvatar.audioRef : undefined}
             isLoading={avatar.isLoading}
             isInitialized={avatar.isInitialized}
             error={avatar.error}
