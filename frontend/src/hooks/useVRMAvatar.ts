@@ -69,9 +69,12 @@ export function useVRMAvatar() {
         "| Rotation applied:", vrm.scene.rotation.y.toFixed(2));
 
       // --- 스프링본 진단 ---
-      const sbm = (vrm as unknown as { springBoneManager?: { joints: Array<{ bone: { name: string }; settings: { stiffness: number } }> } }).springBoneManager;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sbm = (vrm as any).springBoneManager;
       if (sbm && sbm.joints) {
-        const jointNames = sbm.joints.map((j: { bone: { name: string } }) => j.bone.name);
+        // joints는 Set이므로 Array.from()으로 변환
+        const jointsArr = Array.from(sbm.joints) as Array<{ bone: { name: string } }>;
+        const jointNames = jointsArr.map((j) => j.bone.name);
         console.log("[VRM] Spring bone joints:", jointNames.length, jointNames);
 
         // 팔/어깨 관련 스프링본이 있는지 확인
