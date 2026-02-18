@@ -119,8 +119,8 @@ export function AvatarView({
         </div>
       )}
 
-      {/* Simli 아바타 */}
-      {avatarType === "simli" && isInitialized && (
+      {/* Simli 아바타 — video/audio는 initialize() 전에 DOM에 마운트 필요 */}
+      {avatarType === "simli" && (
         <div className="absolute inset-0">
           <video
             ref={videoRef}
@@ -128,10 +128,9 @@ export function AvatarView({
             playsInline
             className="w-full h-full object-cover"
           />
-          {/* Simli 오디오 엘리먼트 (립싱크용, 숨김) */}
           <audio ref={audioRef} autoPlay />
           {/* 데모 모드 오버레이 (비디오 스트림 없을 때) */}
-          {!hasVideoStream && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95">
+          {isInitialized && !hasVideoStream && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
                 <svg
