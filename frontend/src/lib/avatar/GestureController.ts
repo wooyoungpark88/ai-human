@@ -188,6 +188,7 @@ const DEV = process.env.NODE_ENV !== "production";
 export class GestureController {
   private vrm: VRM;
   private baselinePose: Partial<Record<ArmBoneName, THREE.Quaternion>> = {};
+  private restPose = createPose();
   private currentPose = createPose();
   private targetPose = createPose();
   private conversationPhase: MotionState = "idle";
@@ -240,9 +241,35 @@ export class GestureController {
     }
 
     this.baselineCaptured = foundCount > 0;
+    this.computeRestPose();
     if (DEV) {
       console.log(`[Gesture] baseline capture: ${foundCount}/${ARM_BONES.length}`);
     }
+  }
+
+  private getBoneSign(boneName: ArmBoneName, fallback: 1 | -1): 1 | -1 {
+    const baseline = this.baselinePose[boneName];
+    if (!baseline) return fallback;
+    if (Math.abs(baseline.z) < 0.01) return fallback;
+    return baseline.z >= 0 ? 1 : -1;
+  }
+
+  /**
+   * baseline이 T-pose일 수 있으므로 idle에서도 팔이 내려오도록
+   * 모델 기준 오프셋을 한 번 계산해 둔다.
+   */
+  private computeRestPose(): void {
+    const leftSign = this.getBoneSign("leftUpperArm", 1);
+    const rightSign = this.getBoneSign("rightUpperArm", -1);
+
+    this.restPose = createPose({
+      leftShoulder: { z: 0.1 * leftSign },
+      leftUpperArm: { x: 0.16, z: 1.15 * leftSign },
+      leftLowerArm: { x: 0.08, z: -0.3 * leftSign },
+      rightShoulder: { z: 0.1 * rightSign },
+      rightUpperArm: { x: 0.16, z: 1.15 * rightSign },
+      rightLowerArm: { x: 0.08, z: -0.3 * rightSign },
+    });
   }
 
   private getDynamicPose(state: MotionState, elapsedTime: number): ArmPoseDelta {
@@ -294,7 +321,7 @@ export class GestureController {
     }
 
     const motionState = this.resolveMotionState();
-    const phasePose = PHASE_BASE_POSES[motionState];
+    const phasePose = addPose(this.restPose, PHASE_BASE_POSES[motionState]);
     const emotionPose = EMOTION_OVERLAYS[this.emotion] || EMOTION_OVERLAYS.neutral;
     const emotionBlend = this.intensity;
     const blendedEmotion = scalePose(emotionPose, emotionBlend);
