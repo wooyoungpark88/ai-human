@@ -241,8 +241,10 @@ export default function SessionPage() {
 
   // 세션 시작
   const handleStartSession = useCallback(async () => {
-    // BP Managed Agent는 자체 대화 파이프라인 사용 — 백엔드 WebSocket 불필요
-    if (avatarType !== "video") {
+    if (avatarType === "video") {
+      // BP Managed Agent: STT만 사용 (LLM/TTS는 BP 내장 파이프라인)
+      ws.connect(caseId, "stt_only");
+    } else {
       ws.connect(caseId);
     }
     await avatar.initialize();
@@ -255,11 +257,9 @@ export default function SessionPage() {
 
   // 세션 종료 + 피드백 생성
   const handleStopSession = useCallback(async () => {
-    if (avatarType !== "video") {
-      mic.stopRecording();
-      ws.sendMessage({ type: "stop" });
-      ws.disconnect();
-    }
+    mic.stopRecording();
+    ws.sendMessage({ type: "stop" });
+    ws.disconnect();
     avatar.close();
     setIsSessionActive(false);
     setIsThinking(false);
@@ -289,7 +289,7 @@ export default function SessionPage() {
         setIsGeneratingFeedback(false);
       }
     }
-  }, [mic, ws, avatar, avatarType, messages, caseId, router]);
+  }, [mic, ws, avatar, messages, caseId, router]);
 
   // 텍스트 메시지 전송
   const handleSendText = useCallback(() => {
@@ -307,15 +307,13 @@ export default function SessionPage() {
   }, [textInput, ws]);
 
   // 마이크 토글
-  // BP Managed Agent는 LiveKit을 통해 마이크를 직접 관리하므로 useMicrophone 불필요
   const handleMicToggle = useCallback(() => {
-    if (avatarType === "video") return; // BP: LiveKit이 마이크 관리
     if (mic.isRecording) {
       mic.stopRecording();
     } else {
       mic.startRecording();
     }
-  }, [mic, avatarType]);
+  }, [mic]);
 
   // 연결 상태 색상
   const getStatusColor = (status: ConnectionStatus) => {
@@ -432,14 +430,7 @@ export default function SessionPage() {
 
           {/* 마이크 컨트롤 */}
           <div className="flex flex-col items-center gap-2">
-            {avatarType === "video" ? (
-              // BP Managed Agent: LiveKit이 마이크 직접 관리
-              <p className="text-xs text-muted-foreground">
-                {isSessionActive
-                  ? "마이크 활성 — Beyond Presence와 대화 중"
-                  : "상담을 시작해주세요"}
-              </p>
-            ) : sttAvailable ? (
+            {sttAvailable ? (
               <>
                 <MicButton
                   isRecording={mic.isRecording}

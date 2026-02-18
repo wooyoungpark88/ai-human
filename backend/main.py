@@ -190,8 +190,9 @@ async def generate_feedback(request: FeedbackRequest):
 class ConversationSession:
     """개별 대화 세션을 관리합니다."""
 
-    def __init__(self, websocket: WebSocket):
+    def __init__(self, websocket: WebSocket, mode: str = "full"):
         self.websocket = websocket
+        self.mode = mode  # "full" | "stt_only"
         self.stt_service = DeepgramSTTService()
         self.llm_service = ClaudeLLMService()
         self.tts_service = ElevenLabsTTSService()
@@ -208,6 +209,15 @@ class ConversationSession:
     async def initialize(self, case_id: str = "burnout_beginner") -> None:
         """세션을 초기화합니다."""
         self.case_id = case_id
+
+        # stt_only 모드: STT만 초기화 (LLM/TTS 불필요)
+        if self.mode == "stt_only":
+            self.stt_available = await self.stt_service.connect()
+            if not self.stt_available:
+                logger.warning("STT 비활성 - stt_only 모드에서 STT 연결 실패")
+            self.is_active = True
+            logger.info(f"대화 세션 초기화 완료 (stt_only 모드, STT: {'활성' if self.stt_available else '비활성'})")
+            return
 
         # 케이스 프로필 로드 (case_profiles/ 디렉토리)
         self.case_profile = self.llm_service.load_case_profile(case_id)
@@ -286,20 +296,33 @@ class ConversationSession:
                     if is_final and text.strip():
                         self.accumulated_text += " " + text.strip()
 
-                    # speech_final: endpointing 기반 발화 종료 → 즉시 LLM 호출
+                    # speech_final: endpointing 기반 발화 종료
                     if speech_final and self.accumulated_text.strip():
                         user_text = self.accumulated_text.strip()
                         self.accumulated_text = ""
-                        logger.info(f"[STT] speech_final 트리거 → LLM 호출")
-                        await self._process_conversation(user_text)
+                        if self.mode == "stt_only":
+                            # STT-only: 텍스트만 전달, LLM/TTS 파이프라인 건너뜀
+                            logger.info(f"[STT] speech_final (stt_only): {user_text}")
+                            await self.send_message(
+                                ServerMessage(type="status", text="thinking", user_text=user_text)
+                            )
+                        else:
+                            logger.info(f"[STT] speech_final 트리거 → LLM 호출")
+                            await self._process_conversation(user_text)
 
                 elif event_type == "utterance_end":
                     # fallback: speech_final이 누락된 경우에만 트리거
                     if self.accumulated_text.strip():
                         user_text = self.accumulated_text.strip()
                         self.accumulated_text = ""
-                        logger.info(f"[STT] utterance_end fallback → LLM 호출")
-                        await self._process_conversation(user_text)
+                        if self.mode == "stt_only":
+                            logger.info(f"[STT] utterance_end (stt_only): {user_text}")
+                            await self.send_message(
+                                ServerMessage(type="status", text="thinking", user_text=user_text)
+                            )
+                        else:
+                            logger.info(f"[STT] utterance_end fallback → LLM 호출")
+                            await self._process_conversation(user_text)
 
         except asyncio.CancelledError:
             logger.info("STT 리스너 취소됨")
@@ -414,12 +437,12 @@ class ConversationSession:
 
 
 @app.websocket("/ws/conversation")
-async def websocket_conversation(websocket: WebSocket, case_id: str = "burnout_beginner"):
+async def websocket_conversation(websocket: WebSocket, case_id: str = "burnout_beginner", mode: str = "full"):
     """실시간 대화 WebSocket 엔드포인트"""
     await websocket.accept()
-    logger.info(f"WebSocket 연결 수락 (case_id={case_id})")
+    logger.info(f"WebSocket 연결 수락 (case_id={case_id}, mode={mode})")
 
-    session = ConversationSession(websocket)
+    session = ConversationSession(websocket, mode=mode)
 
     try:
         # 세션 초기화 (선택된 케이스로)
