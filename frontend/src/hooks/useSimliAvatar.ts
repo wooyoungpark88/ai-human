@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { EmotionType } from "@/lib/types";
+import type { ConversationPhase, EmotionType } from "@/lib/types";
 import { AudioStreamPlayer } from "@/lib/audio/AudioStreamPlayer";
 
 const SIMLI_API_KEY = process.env.NEXT_PUBLIC_SIMLI_API_KEY || "";
@@ -162,6 +162,13 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
     []
   );
 
+  const setConversationPhase = useCallback(
+    (_phase: ConversationPhase) => {
+      // Simli는 오디오 기반 립싱크 중심이라 별도 모션 상태를 사용하지 않음
+    },
+    []
+  );
+
   const close = useCallback(() => {
     if (simliClientRef.current) {
       simliClientRef.current.stop();
@@ -193,6 +200,7 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
     initialize,
     sendBase64Audio,
     setEmotion,
+    setConversationPhase,
     close,
     videoRef,
     audioRef,

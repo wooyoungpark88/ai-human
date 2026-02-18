@@ -28,6 +28,9 @@ export type EmotionType =
   | "anxious"
   | "empathetic";
 
+/** 대화 기반 아바타 동작 상태 */
+export type ConversationPhase = "idle" | "listening" | "thinking" | "speaking";
+
 /** 감정별 UI 표시 정보 */
 export interface EmotionInfo {
   label: string;

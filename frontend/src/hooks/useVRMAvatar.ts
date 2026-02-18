@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VRM } from "@pixiv/three-vrm";
-import type { EmotionType } from "@/lib/types";
+import type { ConversationPhase, EmotionType } from "@/lib/types";
 import { VRM_MODEL_PATH } from "@/lib/constants";
 import { AudioStreamPlayer } from "@/lib/audio/AudioStreamPlayer";
 import { ExpressionController } from "@/lib/avatar/ExpressionController";
@@ -113,7 +113,16 @@ export function useVRMAvatar() {
       const gestureCtrl = new GestureController(vrm);
       const newControllers: VRMAvatarControllers = {
         expression: expressionCtrl,
-        lipSync: analyser ? new LipSyncController(vrm, analyser, expressionCtrl) : null,
+        lipSync: analyser
+          ? new LipSyncController(
+            vrm,
+            analyser,
+            expressionCtrl,
+            (active) => {
+              gestureCtrl.setLipSyncActive(active);
+            },
+          )
+          : null,
         blink: new BlinkController(vrm),
         idle: new IdleAnimationController(vrm),
         gesture: gestureCtrl,
@@ -147,6 +156,11 @@ export function useVRMAvatar() {
   const setEmotion = useCallback((emotion: EmotionType, intensity: number) => {
     controllersRef.current.expression?.setEmotion(emotion, intensity);
     controllersRef.current.gesture?.setEmotion(emotion, intensity);
+  }, []);
+
+  const setConversationPhase = useCallback((phase: ConversationPhase) => {
+    controllersRef.current.idle?.setListening(phase === "listening");
+    controllersRef.current.gesture?.setConversationPhase(phase);
   }, []);
 
   const close = useCallback(() => {
@@ -191,6 +205,7 @@ export function useVRMAvatar() {
     initialize,
     sendBase64Audio,
     setEmotion,
+    setConversationPhase,
     close,
     vrmRef,
     controllers,

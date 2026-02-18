@@ -13,12 +13,20 @@ export class LipSyncController {
   private vrm: VRM;
   private smoothedValue = 0;
   private expressionController: ExpressionController | null;
+  private activeChangeCallback: ((active: boolean) => void) | null;
+  private wasActive = false;
 
-  constructor(vrm: VRM, analyser: AnalyserNode, expressionController?: ExpressionController) {
+  constructor(
+    vrm: VRM,
+    analyser: AnalyserNode,
+    expressionController?: ExpressionController,
+    activeChangeCallback?: (active: boolean) => void,
+  ) {
     this.vrm = vrm;
     this.analyser = analyser;
     this.dataArray = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
     this.expressionController = expressionController ?? null;
+    this.activeChangeCallback = activeChangeCallback ?? null;
   }
 
   update(_delta: number): void {
@@ -47,6 +55,10 @@ export class LipSyncController {
 
     // ExpressionController에 립싱크 활성 상태 전달
     this.expressionController?.setLipSyncActive(isActive);
+    if (this.wasActive !== isActive) {
+      this.wasActive = isActive;
+      this.activeChangeCallback?.(isActive);
+    }
 
     // 주 viseme: aa (입 크게 벌림), 보조: oh (둥근 입)
     if (isActive) {
@@ -64,5 +76,7 @@ export class LipSyncController {
     for (const v of ["aa", "ih", "ou", "ee", "oh"]) {
       expressions.setValue(v, 0);
     }
+    this.wasActive = false;
+    this.activeChangeCallback?.(false);
   }
 }

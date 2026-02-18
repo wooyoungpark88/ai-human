@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { EmotionType } from "@/lib/types";
-import { AudioStreamPlayer } from "@/lib/audio/AudioStreamPlayer";
+import type { ConversationPhase, EmotionType } from "@/lib/types";
 
 const BP_API_URL =
   process.env.NEXT_PUBLIC_BEYOND_PRESENCE_API_URL ||
@@ -14,12 +13,13 @@ interface UseVideoAvatarOptions {
 }
 
 /**
- * Beyond Presence Speech-to-Video 아바타 훅
+ * Beyond Presence Managed Agent 아바타 훅
  *
- * Beyond Presence는 LiveKit 기반 서버 사이드 아키텍처 사용:
+ * Beyond Presence Managed Agent는 자체 LLM+TTS 파이프라인을 보유:
  * 1. POST /v1/calls → livekit_url + livekit_token 반환
- * 2. LiveKit Room에 참가하여 아바타 비디오 트랙 수신
- * 3. 오디오를 LiveKit DataStream으로 전송
+ * 2. LiveKit Room에 참가
+ * 3. 사용자 마이크 오디오 트랙을 LiveKit에 발행 → BP 에이전트가 수신
+ * 4. BP 에이전트가 자체 STT→LLM→TTS 처리 후 립싱크된 비디오+오디오 트랙 발행
  *
  * 기존 useVRMAvatar와 동일한 인터페이스 노출.
  */
@@ -31,9 +31,9 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
   const [error, setError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const roomRef = useRef<import("livekit-client").Room | null>(null);
   const callIdRef = useRef<string | null>(null);
-  const audioPlayerRef = useRef<AudioStreamPlayer | null>(null);
   const hasVideoRef = useRef(false);
 
   const initialize = useCallback(async () => {
@@ -46,9 +46,6 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
         console.warn(
           "[VideoAvatar] BEYOND_PRESENCE_API_KEY 미설정 -- 데모 모드"
         );
-        const audioPlayer = new AudioStreamPlayer();
-        await audioPlayer.init();
-        audioPlayerRef.current = audioPlayer;
         setIsInitialized(true);
         setIsLoading(false);
         return;
@@ -98,7 +95,7 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
       });
       roomRef.current = room;
 
-      // 비디오 트랙 수신 이벤트
+      // BP 에이전트의 비디오+오디오 트랙 수신
       room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
         console.log(
           `[VideoAvatar] 트랙 구독됨: ${track.kind} from ${participant.identity}`
@@ -106,15 +103,18 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
         if (track.kind === Track.Kind.Video && videoRef.current) {
           track.attach(videoRef.current);
           hasVideoRef.current = true;
-          // 데모 오버레이를 숨기기 위해 video 엘리먼트에 클래스 추가
           videoRef.current.dataset.hasStream = "true";
           console.log("[VideoAvatar] 비디오 트랙 연결됨");
+        }
+        if (track.kind === Track.Kind.Audio && audioRef.current) {
+          track.attach(audioRef.current);
+          console.log("[VideoAvatar] 오디오 트랙 연결됨 (BP TTS 음성)");
         }
       });
 
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
+        track.detach();
         if (track.kind === Track.Kind.Video) {
-          track.detach();
           hasVideoRef.current = false;
           if (videoRef.current) {
             videoRef.current.dataset.hasStream = "false";
@@ -139,10 +139,10 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
       await room.connect(livekitUrl, livekitToken);
       console.log("[VideoAvatar] LiveKit 룸 연결 완료");
 
-      // 오디오 재생기 (로컬 오디오 재생)
-      const audioPlayer = new AudioStreamPlayer();
-      await audioPlayer.init();
-      audioPlayerRef.current = audioPlayer;
+      // 사용자 마이크를 LiveKit 오디오 트랙으로 발행
+      // → BP Managed Agent가 사용자 음성을 수신하여 대화 처리
+      await room.localParticipant.setMicrophoneEnabled(true);
+      console.log("[VideoAvatar] 마이크 트랙 활성화 → BP 에이전트에 음성 전달");
 
       setIsInitialized(true);
       setIsLoading(false);
@@ -158,37 +158,22 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
     }
   }, [agentId]);
 
-  const sendBase64Audio = useCallback((base64Audio: string) => {
-    // 로컬 오디오 재생 (항상)
-    audioPlayerRef.current?.feedBase64Chunk(base64Audio);
-
-    // Beyond Presence에 오디오 전달 (LiveKit DataStream)
-    const room = roomRef.current;
-    if (room && room.state === "connected") {
-      try {
-        const binaryString = atob(base64Audio);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        // LiveKit의 localParticipant를 통해 오디오 데이터 전송
-        // Beyond Presence는 룸의 오디오 트랙을 자동으로 구독하여 립싱크 처리
-        room.localParticipant
-          .publishData(bytes, { reliable: true })
-          .catch((err: unknown) => {
-            console.warn("[VideoAvatar] 오디오 데이터 전송 실패:", err);
-          });
-      } catch (err) {
-        console.warn("[VideoAvatar] 오디오 인코딩 오류:", err);
-      }
-    }
+  const sendBase64Audio = useCallback((_base64Audio: string) => {
+    // BP Managed Agent는 자체 TTS→립싱크 파이프라인 사용
+    // 외부 오디오 주입 불필요 — no-op
   }, []);
 
   const setEmotion = useCallback(
     (_emotion: EmotionType, _intensity: number) => {
       // Beyond Presence는 프로소디 기반 감정 표현 -- API 호출 없음
       // TTS 오디오의 톤/억양에서 자동으로 감정 추론하여 표정 생성
+    },
+    []
+  );
+
+  const setConversationPhase = useCallback(
+    (_phase: ConversationPhase) => {
+      // Beyond Presence는 서버 측 아바타 상태 머신 사용
     },
     []
   );
@@ -214,8 +199,10 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
       videoRef.current.dataset.hasStream = "false";
     }
 
-    audioPlayerRef.current?.dispose();
-    audioPlayerRef.current = null;
+    if (audioRef.current) {
+      audioRef.current.srcObject = null;
+    }
+
     hasVideoRef.current = false;
 
     setIsInitialized(false);
@@ -235,7 +222,9 @@ export function useVideoAvatar(options: UseVideoAvatarOptions = {}) {
     initialize,
     sendBase64Audio,
     setEmotion,
+    setConversationPhase,
     close,
     videoRef,
+    audioRef,
   };
 }

@@ -1,265 +1,362 @@
 import * as THREE from "three";
-import type { VRM } from "@pixiv/three-vrm";
-import type { EmotionType } from "@/lib/types";
+import type { VRM, VRMHumanBoneName } from "@pixiv/three-vrm";
+import type { ConversationPhase, EmotionType } from "@/lib/types";
 
-/**
- * 팔/어깨 제스처 정의 (라디안)
- */
-interface ArmPose {
-  leftShoulder: { z: number };
-  leftUpperArm: { z: number; x: number };
-  leftLowerArm: { z: number; x: number };
-  rightShoulder: { z: number };
-  rightUpperArm: { z: number; x: number };
-  rightLowerArm: { z: number; x: number };
+type MotionState = ConversationPhase;
+
+type ArmBoneName =
+  | "leftShoulder"
+  | "leftUpperArm"
+  | "leftLowerArm"
+  | "rightShoulder"
+  | "rightUpperArm"
+  | "rightLowerArm";
+
+interface BoneDelta {
+  x: number;
+  y: number;
+  z: number;
 }
 
-/**
- * 감정별 제스처 매핑
- * - neutral: 자연스러운 휴식 자세 (팔을 자연스럽게 내림)
- * - 각 감정은 미묘하지만 구별 가능한 차이
- */
-const EMOTION_GESTURES: Record<EmotionType, ArmPose> = {
-  neutral: {
-    leftShoulder: { z: 0.1 },
-    leftUpperArm: { z: 0.8, x: 0.15 },
-    leftLowerArm: { z: -0.15, x: 0 },
-    rightShoulder: { z: -0.1 },
-    rightUpperArm: { z: -0.8, x: 0.15 },
-    rightLowerArm: { z: 0.15, x: 0 },
-  },
-  happy: {
-    leftShoulder: { z: 0.06 },
-    leftUpperArm: { z: 0.6, x: 0.1 },
-    leftLowerArm: { z: -0.1, x: 0 },
+type ArmPoseDelta = Record<ArmBoneName, BoneDelta>;
+
+interface MotionDynamics {
+  breathingAmp: number;
+  fidgetAmp: number;
+  transitionSpeed: number;
+}
+
+const ARM_BONES: ArmBoneName[] = [
+  "leftShoulder",
+  "leftUpperArm",
+  "leftLowerArm",
+  "rightShoulder",
+  "rightUpperArm",
+  "rightLowerArm",
+];
+
+function zeroBone(): BoneDelta {
+  return { x: 0, y: 0, z: 0 };
+}
+
+function createPose(partial?: Partial<Record<ArmBoneName, Partial<BoneDelta>>>): ArmPoseDelta {
+  const pose: ArmPoseDelta = {
+    leftShoulder: zeroBone(),
+    leftUpperArm: zeroBone(),
+    leftLowerArm: zeroBone(),
+    rightShoulder: zeroBone(),
+    rightUpperArm: zeroBone(),
+    rightLowerArm: zeroBone(),
+  };
+
+  if (!partial) return pose;
+
+  for (const boneName of ARM_BONES) {
+    const value = partial[boneName];
+    if (!value) continue;
+    pose[boneName] = {
+      x: value.x ?? 0,
+      y: value.y ?? 0,
+      z: value.z ?? 0,
+    };
+  }
+
+  return pose;
+}
+
+function clonePose(source: ArmPoseDelta): ArmPoseDelta {
+  return createPose(source);
+}
+
+function addPose(a: ArmPoseDelta, b: ArmPoseDelta): ArmPoseDelta {
+  const out = createPose();
+  for (const boneName of ARM_BONES) {
+    out[boneName].x = a[boneName].x + b[boneName].x;
+    out[boneName].y = a[boneName].y + b[boneName].y;
+    out[boneName].z = a[boneName].z + b[boneName].z;
+  }
+  return out;
+}
+
+function scalePose(source: ArmPoseDelta, scale: number): ArmPoseDelta {
+  const out = createPose();
+  for (const boneName of ARM_BONES) {
+    out[boneName].x = source[boneName].x * scale;
+    out[boneName].y = source[boneName].y * scale;
+    out[boneName].z = source[boneName].z * scale;
+  }
+  return out;
+}
+
+const PHASE_BASE_POSES: Record<MotionState, ArmPoseDelta> = {
+  idle: createPose(),
+  listening: createPose({
+    leftShoulder: { z: 0.03 },
+    leftUpperArm: { x: 0.06, z: 0.06 },
+    leftLowerArm: { x: 0.04, z: -0.04 },
+    rightShoulder: { z: -0.03 },
+    rightUpperArm: { x: 0.06, z: -0.06 },
+    rightLowerArm: { x: 0.04, z: 0.04 },
+  }),
+  thinking: createPose({
+    leftUpperArm: { x: 0.06, z: 0.03 },
+    leftLowerArm: { x: 0.05, z: -0.04 },
     rightShoulder: { z: -0.06 },
-    rightUpperArm: { z: -0.6, x: 0.1 },
-    rightLowerArm: { z: 0.1, x: 0 },
-  },
-  sad: {
-    leftShoulder: { z: 0.15 },
-    leftUpperArm: { z: 1.0, x: 0.2 },
-    leftLowerArm: { z: -0.2, x: 0.03 },
-    rightShoulder: { z: -0.15 },
-    rightUpperArm: { z: -1.0, x: 0.2 },
-    rightLowerArm: { z: 0.2, x: 0.03 },
-  },
-  angry: {
-    leftShoulder: { z: 0.12 },
-    leftUpperArm: { z: 0.7, x: 0.2 },
-    leftLowerArm: { z: -0.25, x: 0.05 },
-    rightShoulder: { z: -0.12 },
-    rightUpperArm: { z: -0.7, x: 0.2 },
-    rightLowerArm: { z: 0.25, x: 0.05 },
-  },
-  surprised: {
-    leftShoulder: { z: 0.0 },
-    leftUpperArm: { z: 0.5, x: 0.1 },
-    leftLowerArm: { z: -0.1, x: -0.05 },
-    rightShoulder: { z: 0.0 },
-    rightUpperArm: { z: -0.5, x: 0.1 },
-    rightLowerArm: { z: 0.1, x: -0.05 },
-  },
-  thinking: {
-    leftShoulder: { z: 0.1 },
-    leftUpperArm: { z: 0.8, x: 0.15 },
-    leftLowerArm: { z: -0.15, x: 0 },
+    rightUpperArm: { x: 0.28, z: -0.18 },
+    rightLowerArm: { x: 0.36, z: 0.32 },
+  }),
+  speaking: createPose({
+    leftShoulder: { z: 0.05 },
+    leftUpperArm: { x: 0.16, z: 0.24 },
+    leftLowerArm: { x: 0.1, z: -0.16 },
     rightShoulder: { z: -0.05 },
-    rightUpperArm: { z: -0.4, x: 0.4 },
-    rightLowerArm: { z: 0.3, x: 0.25 },
-  },
-  anxious: {
-    leftShoulder: { z: 0.18 },
-    leftUpperArm: { z: 0.9, x: 0.3 },
-    leftLowerArm: { z: -0.25, x: 0.1 },
-    rightShoulder: { z: -0.18 },
-    rightUpperArm: { z: -0.9, x: 0.3 },
-    rightLowerArm: { z: 0.25, x: 0.1 },
-  },
-  empathetic: {
-    leftShoulder: { z: 0.08 },
-    leftUpperArm: { z: 0.75, x: 0.15 },
-    leftLowerArm: { z: -0.12, x: 0 },
-    rightShoulder: { z: -0.08 },
-    rightUpperArm: { z: -0.75, x: 0.15 },
-    rightLowerArm: { z: 0.12, x: 0 },
-  },
+    rightUpperArm: { x: 0.16, z: -0.24 },
+    rightLowerArm: { x: 0.1, z: 0.16 },
+  }),
 };
 
-function lerpPose(a: ArmPose, b: ArmPose, t: number): ArmPose {
-  const lerp = (x: number, y: number) => x + (y - x) * t;
-  return {
-    leftShoulder: { z: lerp(a.leftShoulder.z, b.leftShoulder.z) },
-    leftUpperArm: {
-      z: lerp(a.leftUpperArm.z, b.leftUpperArm.z),
-      x: lerp(a.leftUpperArm.x, b.leftUpperArm.x),
-    },
-    leftLowerArm: {
-      z: lerp(a.leftLowerArm.z, b.leftLowerArm.z),
-      x: lerp(a.leftLowerArm.x, b.leftLowerArm.x),
-    },
-    rightShoulder: { z: lerp(a.rightShoulder.z, b.rightShoulder.z) },
-    rightUpperArm: {
-      z: lerp(a.rightUpperArm.z, b.rightUpperArm.z),
-      x: lerp(a.rightUpperArm.x, b.rightUpperArm.x),
-    },
-    rightLowerArm: {
-      z: lerp(a.rightLowerArm.z, b.rightLowerArm.z),
-      x: lerp(a.rightLowerArm.x, b.rightLowerArm.x),
-    },
-  };
-}
+const EMOTION_OVERLAYS: Record<EmotionType, ArmPoseDelta> = {
+  neutral: createPose(),
+  happy: createPose({
+    leftShoulder: { z: 0.02 },
+    leftUpperArm: { x: 0.08, z: 0.16 },
+    leftLowerArm: { x: 0.04, z: -0.08 },
+    rightShoulder: { z: -0.02 },
+    rightUpperArm: { x: 0.08, z: -0.16 },
+    rightLowerArm: { x: 0.04, z: 0.08 },
+  }),
+  sad: createPose({
+    leftShoulder: { z: -0.07 },
+    leftUpperArm: { x: -0.08, z: -0.1 },
+    leftLowerArm: { x: -0.06, z: 0.06 },
+    rightShoulder: { z: 0.07 },
+    rightUpperArm: { x: -0.08, z: 0.1 },
+    rightLowerArm: { x: -0.06, z: -0.06 },
+  }),
+  angry: createPose({
+    leftShoulder: { z: 0.07 },
+    leftUpperArm: { x: 0.2, z: 0.32 },
+    leftLowerArm: { x: 0.24, z: -0.28 },
+    rightShoulder: { z: -0.07 },
+    rightUpperArm: { x: 0.2, z: -0.32 },
+    rightLowerArm: { x: 0.24, z: 0.28 },
+  }),
+  surprised: createPose({
+    leftShoulder: { z: 0.1 },
+    leftUpperArm: { x: 0.2, z: 0.46 },
+    leftLowerArm: { x: 0.14, z: -0.12 },
+    rightShoulder: { z: -0.1 },
+    rightUpperArm: { x: 0.2, z: -0.46 },
+    rightLowerArm: { x: 0.14, z: 0.12 },
+  }),
+  thinking: createPose({
+    leftUpperArm: { x: 0.04, z: 0.06 },
+    leftLowerArm: { x: 0.06, z: -0.04 },
+    rightShoulder: { z: -0.04 },
+    rightUpperArm: { x: 0.2, z: -0.12 },
+    rightLowerArm: { x: 0.22, z: 0.16 },
+  }),
+  anxious: createPose({
+    leftShoulder: { z: 0.03 },
+    leftUpperArm: { x: 0.24, z: 0.1 },
+    leftLowerArm: { x: 0.18, z: -0.2 },
+    rightShoulder: { z: -0.03 },
+    rightUpperArm: { x: 0.24, z: -0.1 },
+    rightLowerArm: { x: 0.18, z: 0.2 },
+  }),
+  empathetic: createPose({
+    leftShoulder: { z: 0.02 },
+    leftUpperArm: { x: 0.14, z: 0.18 },
+    leftLowerArm: { x: 0.1, z: -0.08 },
+    rightShoulder: { z: -0.02 },
+    rightUpperArm: { x: 0.14, z: -0.18 },
+    rightLowerArm: { x: 0.1, z: 0.08 },
+  }),
+};
+
+const MOTION_DYNAMICS: Record<MotionState, MotionDynamics> = {
+  idle: { breathingAmp: 0.012, fidgetAmp: 0.018, transitionSpeed: 5.5 },
+  listening: { breathingAmp: 0.016, fidgetAmp: 0.022, transitionSpeed: 6.5 },
+  thinking: { breathingAmp: 0.01, fidgetAmp: 0.014, transitionSpeed: 4.4 },
+  speaking: { breathingAmp: 0.02, fidgetAmp: 0.03, transitionSpeed: 8.5 },
+};
+
+const DEV = process.env.NODE_ENV !== "production";
 
 /**
  * 제스처 컨트롤러
- * - 감정에 따른 팔/어깨 포즈 변화
- * - 부드러운 전환 애니메이션
- * - 미세 떨림/움직임으로 생동감
- *
- * normalized bone에 quaternion을 직접 설정하여 vrm.update()가
- * normalized→raw 변환을 자동 처리하도록 함.
+ * - 감정 + 모션 상태(대기/경청/생각/발화) 기반 상지 포즈 제어
+ * - baseline quaternion 대비 delta를 적용하여 모델별 기본 자세 보존
+ * - quaternion slerp로 부드러운 전환
  */
 export class GestureController {
   private vrm: VRM;
-  private currentPose: ArmPose;
-  private targetPose: ArmPose;
-  private transitionSpeed = 1.5;
-  private loggedOnce = false;
-
-  // 미세 움직임 (손이 완전히 정지하지 않게)
+  private baselinePose: Partial<Record<ArmBoneName, THREE.Quaternion>> = {};
+  private currentPose = createPose();
+  private targetPose = createPose();
+  private conversationPhase: MotionState = "idle";
+  private emotion: EmotionType = "neutral";
+  private intensity = 0.5;
+  private lipSyncActive = false;
   private fidgetPhase = Math.random() * Math.PI * 2;
+  private baselineCaptured = false;
+  private loggedOnce = false;
 
   // 재사용 헬퍼 (GC 회피)
   private _euler = new THREE.Euler();
+  private _deltaQuat = new THREE.Quaternion();
+  private _targetQuat = new THREE.Quaternion();
 
   constructor(vrm: VRM) {
     this.vrm = vrm;
-    this.currentPose = JSON.parse(JSON.stringify(EMOTION_GESTURES.neutral));
-    this.targetPose = JSON.parse(JSON.stringify(EMOTION_GESTURES.neutral));
+    this.captureBaselinePose();
     console.log("[Gesture] 제스처 컨트롤러 초기화");
   }
 
   setEmotion(emotion: EmotionType, intensity: number): void {
-    const gesture = EMOTION_GESTURES[emotion] || EMOTION_GESTURES.neutral;
-    const neutralGesture = EMOTION_GESTURES.neutral;
-    const blend = 0.3 + intensity * 0.7;
-    this.targetPose = lerpPose(neutralGesture, gesture, blend);
+    this.emotion = emotion;
+    this.intensity = Math.min(1, Math.max(0, intensity));
   }
 
-  /** normalized bone node의 quaternion을 Euler(x, 0, z) 기반으로 설정 */
-  private _setBoneRotation(
-    bone: THREE.Object3D | null,
-    x: number,
-    y: number,
-    z: number,
-  ): void {
-    if (!bone) return;
-    this._euler.set(x, y, z, "XYZ");
-    bone.quaternion.setFromEuler(this._euler);
+  setConversationPhase(phase: MotionState): void {
+    this.conversationPhase = phase;
+  }
+
+  setLipSyncActive(active: boolean): void {
+    this.lipSyncActive = active;
+  }
+
+  private resolveMotionState(): MotionState {
+    if (this.lipSyncActive) return "speaking";
+    return this.conversationPhase;
+  }
+
+  private captureBaselinePose(): void {
+    const humanoid = this.vrm.humanoid;
+    if (!humanoid) return;
+
+    let foundCount = 0;
+    for (const boneName of ARM_BONES) {
+      const bone = humanoid.getNormalizedBoneNode(boneName as VRMHumanBoneName);
+      if (!bone) continue;
+      this.baselinePose[boneName] = bone.quaternion.clone();
+      foundCount++;
+    }
+
+    this.baselineCaptured = foundCount > 0;
+    if (DEV) {
+      console.log(`[Gesture] baseline capture: ${foundCount}/${ARM_BONES.length}`);
+    }
+  }
+
+  private getDynamicPose(state: MotionState, elapsedTime: number): ArmPoseDelta {
+    const dynamic = createPose();
+    const profile = MOTION_DYNAMICS[state];
+    const breathing = Math.sin(elapsedTime * 1.2) * profile.breathingAmp;
+    const fidgetL =
+      Math.sin(this.fidgetPhase * 0.8 + 0.7) * profile.fidgetAmp +
+      Math.sin(this.fidgetPhase * 1.7 + 2.1) * (profile.fidgetAmp * 0.5);
+    const fidgetR =
+      Math.sin(this.fidgetPhase * 0.78 + 2.6) * profile.fidgetAmp +
+      Math.sin(this.fidgetPhase * 1.6 + 1.1) * (profile.fidgetAmp * 0.5);
+
+    dynamic.leftUpperArm.z = breathing + fidgetL;
+    dynamic.leftLowerArm.z = fidgetL * 0.85;
+    dynamic.rightUpperArm.z = -breathing + fidgetR;
+    dynamic.rightLowerArm.z = fidgetR * 0.85;
+
+    if (state === "speaking") {
+      const talkPulse = Math.sin(elapsedTime * 6.5) * 0.045;
+      dynamic.leftUpperArm.x += Math.max(0, talkPulse);
+      dynamic.rightUpperArm.x += Math.max(0, -talkPulse);
+    }
+
+    return dynamic;
+  }
+
+  private applyBonePose(boneName: ArmBoneName, pose: BoneDelta, slerpFactor: number): void {
+    const humanoid = this.vrm.humanoid;
+    if (!humanoid) return;
+
+    const bone = humanoid.getNormalizedBoneNode(boneName as VRMHumanBoneName);
+    const baseline = this.baselinePose[boneName];
+    if (!bone || !baseline) return;
+
+    this._euler.set(pose.x, pose.y, pose.z, "XYZ");
+    this._deltaQuat.setFromEuler(this._euler);
+    this._targetQuat.copy(baseline).multiply(this._deltaQuat);
+    bone.quaternion.slerp(this._targetQuat, slerpFactor);
   }
 
   update(delta: number, elapsedTime: number): void {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
 
-    if (!this.loggedOnce) {
-      this.loggedOnce = true;
-      const lua = humanoid.getNormalizedBoneNode("leftUpperArm");
-      const rua = humanoid.getNormalizedBoneNode("rightUpperArm");
-      console.log("[Gesture] leftUpperArm bone:", lua ? "found" : "NULL",
-        "| rightUpperArm bone:", rua ? "found" : "NULL",
-        "| target L.z:", this.targetPose.leftUpperArm.z,
-        "| target R.z:", this.targetPose.rightUpperArm.z);
+    if (!this.baselineCaptured) {
+      this.captureBaselinePose();
+      if (!this.baselineCaptured) return;
+    }
+
+    const motionState = this.resolveMotionState();
+    const phasePose = PHASE_BASE_POSES[motionState];
+    const emotionPose = EMOTION_OVERLAYS[this.emotion] || EMOTION_OVERLAYS.neutral;
+    const emotionBlend = this.intensity;
+    const blendedEmotion = scalePose(emotionPose, emotionBlend);
+    this.targetPose = addPose(phasePose, blendedEmotion);
+
+    const dynamics = MOTION_DYNAMICS[motionState];
+    const smoothFactor = 1.0 - Math.exp(-dynamics.transitionSpeed * delta);
+    const slerpFactor = 1.0 - Math.exp(-12.0 * delta);
+
+    for (const boneName of ARM_BONES) {
+      this.currentPose[boneName].x +=
+        (this.targetPose[boneName].x - this.currentPose[boneName].x) * smoothFactor;
+      this.currentPose[boneName].y +=
+        (this.targetPose[boneName].y - this.currentPose[boneName].y) * smoothFactor;
+      this.currentPose[boneName].z +=
+        (this.targetPose[boneName].z - this.currentPose[boneName].z) * smoothFactor;
     }
 
     this.fidgetPhase += delta;
+    const dynamicPose = this.getDynamicPose(motionState, elapsedTime);
+    const finalPose = addPose(this.currentPose, dynamicPose);
 
-    // 호흡 + 미세 떨림
-    const breathIntensity = Math.sin(elapsedTime * 0.8) * 0.01;
-    const fidgetL =
-      Math.sin(this.fidgetPhase * 0.6 + 1.2) * 0.008 +
-      Math.sin(this.fidgetPhase * 1.3 + 3.5) * 0.004;
-    const fidgetR =
-      Math.sin(this.fidgetPhase * 0.55 + 2.1) * 0.008 +
-      Math.sin(this.fidgetPhase * 1.1 + 0.7) * 0.004;
+    for (const boneName of ARM_BONES) {
+      this.applyBonePose(boneName, finalPose[boneName], slerpFactor);
+    }
 
-    const smoothFactor = 1.0 - Math.exp(-this.transitionSpeed * delta);
-
-    // --- 부드러운 전환 계산 ---
-    this.currentPose.leftShoulder.z +=
-      (this.targetPose.leftShoulder.z - this.currentPose.leftShoulder.z) * smoothFactor;
-    this.currentPose.leftUpperArm.z +=
-      (this.targetPose.leftUpperArm.z - this.currentPose.leftUpperArm.z) * smoothFactor;
-    this.currentPose.leftUpperArm.x +=
-      (this.targetPose.leftUpperArm.x - this.currentPose.leftUpperArm.x) * smoothFactor;
-    this.currentPose.leftLowerArm.z +=
-      (this.targetPose.leftLowerArm.z - this.currentPose.leftLowerArm.z) * smoothFactor;
-    this.currentPose.leftLowerArm.x +=
-      (this.targetPose.leftLowerArm.x - this.currentPose.leftLowerArm.x) * smoothFactor;
-    this.currentPose.rightShoulder.z +=
-      (this.targetPose.rightShoulder.z - this.currentPose.rightShoulder.z) * smoothFactor;
-    this.currentPose.rightUpperArm.z +=
-      (this.targetPose.rightUpperArm.z - this.currentPose.rightUpperArm.z) * smoothFactor;
-    this.currentPose.rightUpperArm.x +=
-      (this.targetPose.rightUpperArm.x - this.currentPose.rightUpperArm.x) * smoothFactor;
-    this.currentPose.rightLowerArm.z +=
-      (this.targetPose.rightLowerArm.z - this.currentPose.rightLowerArm.z) * smoothFactor;
-    this.currentPose.rightLowerArm.x +=
-      (this.targetPose.rightLowerArm.x - this.currentPose.rightLowerArm.x) * smoothFactor;
-
-    // --- normalized bone에 quaternion으로 설정 ---
-    // 왼쪽
-    this._setBoneRotation(
-      humanoid.getNormalizedBoneNode("leftShoulder"),
-      0, 0, this.currentPose.leftShoulder.z,
-    );
-    this._setBoneRotation(
-      humanoid.getNormalizedBoneNode("leftUpperArm"),
-      this.currentPose.leftUpperArm.x, 0,
-      this.currentPose.leftUpperArm.z + breathIntensity + fidgetL,
-    );
-    this._setBoneRotation(
-      humanoid.getNormalizedBoneNode("leftLowerArm"),
-      this.currentPose.leftLowerArm.x, 0,
-      this.currentPose.leftLowerArm.z + fidgetL * 0.5,
-    );
-
-    // 오른쪽
-    this._setBoneRotation(
-      humanoid.getNormalizedBoneNode("rightShoulder"),
-      0, 0, this.currentPose.rightShoulder.z,
-    );
-    this._setBoneRotation(
-      humanoid.getNormalizedBoneNode("rightUpperArm"),
-      this.currentPose.rightUpperArm.x, 0,
-      this.currentPose.rightUpperArm.z - breathIntensity + fidgetR,
-    );
-    this._setBoneRotation(
-      humanoid.getNormalizedBoneNode("rightLowerArm"),
-      this.currentPose.rightLowerArm.x, 0,
-      this.currentPose.rightLowerArm.z + fidgetR * 0.5,
-    );
+    if (DEV && !this.loggedOnce) {
+      this.loggedOnce = true;
+      const left = humanoid.getNormalizedBoneNode("leftUpperArm");
+      const right = humanoid.getNormalizedBoneNode("rightUpperArm");
+      console.log(
+        "[Gesture] runtime check",
+        `state=${motionState}`,
+        `emotion=${this.emotion}`,
+        `leftUpperArm=${left ? "OK" : "NULL"}`,
+        `rightUpperArm=${right ? "OK" : "NULL"}`
+      );
+    }
   }
 
   dispose(): void {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
 
-    const bones = [
-      "leftShoulder",
-      "leftUpperArm",
-      "leftLowerArm",
-      "rightShoulder",
-      "rightUpperArm",
-      "rightLowerArm",
-    ] as const;
-
-    for (const boneName of bones) {
-      const bone = humanoid.getNormalizedBoneNode(boneName);
-      if (bone) {
-        bone.quaternion.identity();
+    for (const boneName of ARM_BONES) {
+      const bone = humanoid.getNormalizedBoneNode(boneName as VRMHumanBoneName);
+      const baseline = this.baselinePose[boneName];
+      if (bone && baseline) {
+        bone.quaternion.copy(baseline);
       }
     }
+
+    this.currentPose = createPose();
+    this.targetPose = createPose();
+    this.conversationPhase = "idle";
+    this.emotion = "neutral";
+    this.intensity = 0.5;
+    this.lipSyncActive = false;
 
     console.log("[Gesture] 제스처 컨트롤러 정리");
   }

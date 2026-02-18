@@ -36,7 +36,7 @@ interface AvatarViewProps {
   controllers?: VRMAvatarControllers;
   // Video mode props (Beyond Presence / Simli 공용)
   videoRef?: React.RefObject<HTMLVideoElement | null>;
-  // Simli 전용 — 오디오 엘리먼트
+  // Beyond Presence / Simli 공용 — 오디오 엘리먼트
   audioRef?: React.RefObject<HTMLAudioElement | null>;
   // Common props
   isLoading?: boolean;
@@ -83,8 +83,8 @@ export function AvatarView({
         <VRMScene vrm={vrm} controllers={controllers} isLoading={isLoading} />
       )}
 
-      {/* 비디오 아바타 (Beyond Presence) */}
-      {avatarType === "video" && isInitialized && (
+      {/* 비디오 아바타 (Beyond Presence) — video/audio는 initialize() 전에 DOM에 마운트 필요 */}
+      {avatarType === "video" && (
         <div className="absolute inset-0">
           <video
             ref={videoRef}
@@ -92,8 +92,9 @@ export function AvatarView({
             playsInline
             className="w-full h-full object-cover"
           />
+          <audio ref={audioRef} autoPlay />
           {/* 데모 모드 오버레이 (비디오 스트림 없을 때) */}
-          {!hasVideoStream && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95 video-demo-placeholder">
+          {isInitialized && !hasVideoStream && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95 video-demo-placeholder">
             <div className="text-center">
               <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <svg

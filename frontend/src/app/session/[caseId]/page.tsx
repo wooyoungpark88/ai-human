@@ -18,6 +18,7 @@ import { useSimliAvatar } from "@/hooks/useSimliAvatar";
 import { API_URL } from "@/lib/constants";
 import type {
   ChatMessage,
+  ConversationPhase,
   EmotionType,
   ServerMessage,
   ConnectionStatus,
@@ -41,6 +42,9 @@ export default function SessionPage() {
   const [textInput, setTextInput] = useState("");
   const [sttAvailable, setSttAvailable] = useState(true);
   const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
+  const [conversationPhase, setConversationPhase] =
+    useState<ConversationPhase>("idle");
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Refs
   const messageIdRef = useRef(0);
@@ -206,16 +210,21 @@ export default function SessionPage() {
 
   // 세션 시작
   const handleStartSession = useCallback(async () => {
-    ws.connect(caseId);
+    // BP Managed Agent는 자체 대화 파이프라인 사용 — 백엔드 WebSocket 불필요
+    if (avatarType !== "video") {
+      ws.connect(caseId);
+    }
     await avatar.initialize();
     setIsSessionActive(true);
-  }, [ws, avatar, caseId]);
+  }, [ws, avatar, caseId, avatarType]);
 
   // 세션 종료 + 피드백 생성
   const handleStopSession = useCallback(async () => {
-    mic.stopRecording();
-    ws.sendMessage({ type: "stop" });
-    ws.disconnect();
+    if (avatarType !== "video") {
+      mic.stopRecording();
+      ws.sendMessage({ type: "stop" });
+      ws.disconnect();
+    }
     avatar.close();
     setIsSessionActive(false);
     setIsThinking(false);
@@ -242,7 +251,7 @@ export default function SessionPage() {
         setIsGeneratingFeedback(false);
       }
     }
-  }, [mic, ws, avatar, messages, caseId, router]);
+  }, [mic, ws, avatar, avatarType, messages, caseId, router]);
 
   // 텍스트 메시지 전송
   const handleSendText = useCallback(() => {
@@ -260,13 +269,15 @@ export default function SessionPage() {
   }, [textInput, ws]);
 
   // 마이크 토글
+  // BP Managed Agent는 LiveKit을 통해 마이크를 직접 관리하므로 useMicrophone 불필요
   const handleMicToggle = useCallback(() => {
+    if (avatarType === "video") return; // BP: LiveKit이 마이크 관리
     if (mic.isRecording) {
       mic.stopRecording();
     } else {
       mic.startRecording();
     }
-  }, [mic]);
+  }, [mic, avatarType]);
 
   // 연결 상태 색상
   const getStatusColor = (status: ConnectionStatus) => {
@@ -373,7 +384,7 @@ export default function SessionPage() {
             vrm={avatarType === "vrm" ? vrmAvatar.vrmRef.current : undefined}
             controllers={avatarType === "vrm" ? vrmAvatar.controllers : undefined}
             videoRef={avatarType === "video" ? videoAvatar.videoRef : avatarType === "simli" ? simliAvatar.videoRef : undefined}
-            audioRef={avatarType === "simli" ? simliAvatar.audioRef : undefined}
+            audioRef={avatarType === "video" ? videoAvatar.audioRef : avatarType === "simli" ? simliAvatar.audioRef : undefined}
             isLoading={avatar.isLoading}
             isInitialized={avatar.isInitialized}
             error={avatar.error}
@@ -383,7 +394,14 @@ export default function SessionPage() {
 
           {/* 마이크 컨트롤 */}
           <div className="flex flex-col items-center gap-2">
-            {sttAvailable ? (
+            {avatarType === "video" ? (
+              // BP Managed Agent: LiveKit이 마이크 직접 관리
+              <p className="text-xs text-muted-foreground">
+                {isSessionActive
+                  ? "마이크 활성 — Beyond Presence와 대화 중"
+                  : "상담을 시작해주세요"}
+              </p>
+            ) : sttAvailable ? (
               <>
                 <MicButton
                   isRecording={mic.isRecording}
