@@ -50,6 +50,7 @@ class ServerMessage(BaseModel):
     intensity: Optional[float] = None
     audio_data: Optional[str] = None  # base64 인코딩된 오디오 데이터
     is_final: bool = False
+    user_text: Optional[str] = None  # thinking 상태에서 확정된 사용자 발화 텍스트
 
 
 class ClientProfile(BaseModel):

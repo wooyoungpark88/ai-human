@@ -6,6 +6,7 @@ export interface ServerMessage {
   intensity?: number;
   audio_data?: string; // base64 인코딩된 PCM 오디오
   is_final?: boolean;
+  user_text?: string; // thinking 상태에서 확정된 사용자 발화 텍스트
 }
 
 /** 프론트엔드에서 서버로 보내는 WebSocket 메시지 */

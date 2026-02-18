@@ -324,7 +324,7 @@ class ConversationSession:
             # Step 1: Claude LLM 응답 생성
             logger.info(f"[Pipeline] 사용자: {user_text}")
             await self.send_message(
-                ServerMessage(type="status", text="thinking")
+                ServerMessage(type="status", text="thinking", user_text=user_text)
             )
 
             llm_response = await self.llm_service.generate_response(user_text)

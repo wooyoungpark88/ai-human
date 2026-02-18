@@ -123,10 +123,7 @@ export default function SessionPage() {
     (message: ServerMessage) => {
       switch (message.type) {
         case "transcript":
-          if (message.is_final && message.text) {
-            setPartialTranscript("");
-            partialTranscriptRef.current = "";
-          } else if (message.text) {
+          if (message.text) {
             setPartialTranscript(message.text);
             partialTranscriptRef.current = message.text;
           }
@@ -175,21 +172,22 @@ export default function SessionPage() {
         case "status":
           if (message.text === "thinking") {
             setIsThinking(true);
-            const currentTranscript = partialTranscriptRef.current;
-            if (currentTranscript) {
+            // user_text: 백엔드가 확정한 사용자 발화 (우선), fallback: partialTranscript
+            const userText = message.user_text || partialTranscriptRef.current;
+            if (userText) {
               const msgId = `msg-${++messageIdRef.current}`;
               setMessages((prev) => [
                 ...prev,
                 {
                   id: msgId,
                   role: "user",
-                  text: currentTranscript,
+                  text: userText,
                   timestamp: new Date(),
                 },
               ]);
-              setPartialTranscript("");
-              partialTranscriptRef.current = "";
             }
+            setPartialTranscript("");
+            partialTranscriptRef.current = "";
           } else if (message.text === "stt_unavailable") {
             setSttAvailable(false);
           }
