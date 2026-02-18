@@ -42,13 +42,12 @@ export default function SessionPage() {
   const [textInput, setTextInput] = useState("");
   const [sttAvailable, setSttAvailable] = useState(true);
   const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
-  const [conversationPhase, setConversationPhase] =
-    useState<ConversationPhase>("idle");
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Refs
   const messageIdRef = useRef(0);
   const partialTranscriptRef = useRef("");
+  const conversationPhaseRef = useRef<ConversationPhase>("idle");
 
   // 아바타 타입 결정 (케이스 정보에서)
   const avatarType: AvatarType = caseInfo?.avatar_type || "vrm";
@@ -72,6 +71,7 @@ export default function SessionPage() {
         initialize: videoAvatar.initialize,
         sendBase64Audio: videoAvatar.sendBase64Audio,
         setEmotion: videoAvatar.setEmotion,
+        setConversationPhase: videoAvatar.setConversationPhase,
         close: videoAvatar.close,
       };
     }
@@ -83,6 +83,7 @@ export default function SessionPage() {
         initialize: simliAvatar.initialize,
         sendBase64Audio: simliAvatar.sendBase64Audio,
         setEmotion: simliAvatar.setEmotion,
+        setConversationPhase: simliAvatar.setConversationPhase,
         close: simliAvatar.close,
       };
     }
@@ -93,6 +94,7 @@ export default function SessionPage() {
       initialize: vrmAvatar.initialize,
       sendBase64Audio: vrmAvatar.sendBase64Audio,
       setEmotion: vrmAvatar.setEmotion,
+      setConversationPhase: vrmAvatar.setConversationPhase,
       close: vrmAvatar.close,
     };
   }, [avatarType, vrmAvatar, videoAvatar, simliAvatar]);
@@ -149,7 +151,11 @@ export default function SessionPage() {
 
         case "audio":
           if (message.audio_data && !message.is_final) {
+            setIsSpeaking(true);
             avatar.sendBase64Audio(message.audio_data);
+          }
+          if (message.is_final) {
+            setIsSpeaking(false);
           }
           break;
 
@@ -192,6 +198,7 @@ export default function SessionPage() {
         case "error":
           console.error("[Server Error]", message.text);
           setIsThinking(false);
+          setIsSpeaking(false);
           break;
       }
     },
@@ -208,6 +215,32 @@ export default function SessionPage() {
     },
   });
 
+  // 대화 상태 머신: speaking > thinking > listening > idle
+  useEffect(() => {
+    let nextPhase: ConversationPhase = "idle";
+
+    if (!isSessionActive) {
+      nextPhase = "idle";
+    } else if (isSpeaking) {
+      nextPhase = "speaking";
+    } else if (isThinking) {
+      nextPhase = "thinking";
+    } else if (mic.isRecording) {
+      nextPhase = "listening";
+    }
+
+    if (nextPhase !== conversationPhaseRef.current) {
+      conversationPhaseRef.current = nextPhase;
+      avatar.setConversationPhase(nextPhase);
+    }
+  }, [
+    avatar,
+    isSessionActive,
+    isSpeaking,
+    isThinking,
+    mic.isRecording,
+  ]);
+
   // 세션 시작
   const handleStartSession = useCallback(async () => {
     // BP Managed Agent는 자체 대화 파이프라인 사용 — 백엔드 WebSocket 불필요
@@ -215,6 +248,10 @@ export default function SessionPage() {
       ws.connect(caseId);
     }
     await avatar.initialize();
+    setIsThinking(false);
+    setIsSpeaking(false);
+    conversationPhaseRef.current = "idle";
+    avatar.setConversationPhase("idle");
     setIsSessionActive(true);
   }, [ws, avatar, caseId, avatarType]);
 
@@ -228,7 +265,10 @@ export default function SessionPage() {
     avatar.close();
     setIsSessionActive(false);
     setIsThinking(false);
+    setIsSpeaking(false);
     setPartialTranscript("");
+    conversationPhaseRef.current = "idle";
+    avatar.setConversationPhase("idle");
 
     // 대화가 있으면 피드백 생성
     if (messages.length >= 2) {

@@ -64,10 +64,6 @@ function createPose(partial?: Partial<Record<ArmBoneName, Partial<BoneDelta>>>):
   return pose;
 }
 
-function clonePose(source: ArmPoseDelta): ArmPoseDelta {
-  return createPose(source);
-}
-
 function addPose(a: ArmPoseDelta, b: ArmPoseDelta): ArmPoseDelta {
   const out = createPose();
   for (const boneName of ARM_BONES) {

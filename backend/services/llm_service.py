@@ -50,6 +50,8 @@ class ClaudeLLMService:
         self.conversation_history: list[dict] = []
         self.system_prompt: str = DEFAULT_SYSTEM_PROMPT
         self.max_history_length: int = 20  # 최대 대화 기록 수
+        self.last_valid_emotion: EmotionType = EmotionType.NEUTRAL
+        self.json_parse_failure_count: int = 0
 
     def load_profile(self, profile_id: str = "default") -> Optional[ClientProfile]:
         """내담자 프로필을 로드합니다."""
@@ -166,30 +168,128 @@ class ClaudeLLMService:
 
     def _parse_response(self, raw_text: str) -> LLMResponse:
         """LLM 응답 텍스트에서 JSON을 파싱합니다."""
-        try:
-            # JSON 블록 추출 시도
-            text = raw_text.strip()
-            if text.startswith("```"):
-                # 코드 블록 제거
-                lines = text.split("\n")
-                text = "\n".join(lines[1:-1]) if len(lines) > 2 else text
+        text = raw_text.strip()
+        if text.startswith("```"):
+            # 코드 블록 제거
+            lines = text.split("\n")
+            text = "\n".join(lines[1:-1]) if len(lines) > 2 else text
 
+        # 1차: 전체 텍스트를 JSON으로 직접 파싱
+        try:
             data = json.loads(text)
-            return LLMResponse(
-                text=data.get("text", ""),
-                emotion=EmotionType(data.get("emotion", "neutral")),
-                intensity=float(data.get("intensity", 0.5)),
-                voice_direction=data.get("voice_direction", ""),
+            return self._build_response_from_data(data, raw_text)
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            first_error = e
+
+        # 2차: 텍스트 내부에서 JSON 객체 블록만 추출하여 파싱
+        json_block = self._extract_json_object(text)
+        if json_block:
+            try:
+                data = json.loads(json_block)
+                return self._build_response_from_data(data, raw_text)
+            except (json.JSONDecodeError, ValueError, TypeError) as e:
+                logger.warning(f"JSON 블록 파싱 실패: {e}")
+
+        self.json_parse_failure_count += 1
+        logger.warning(
+            "JSON 파싱 실패(%d회) - 이전 유효 감정 유지: %s | error=%s",
+            self.json_parse_failure_count,
+            self.last_valid_emotion.value,
+            first_error,
+        )
+
+        # 파싱 실패 시 감정을 neutral로 강제하지 않고 직전 유효 감정 유지
+        return LLMResponse(
+            text=raw_text,
+            emotion=self.last_valid_emotion,
+            intensity=0.5,
+            voice_direction="",
+        )
+
+    def _build_response_from_data(self, data: object, raw_text: str) -> LLMResponse:
+        if not isinstance(data, dict):
+            raise TypeError(f"LLM JSON payload must be object, got {type(data).__name__}")
+
+        text = data.get("text", raw_text)
+        if not isinstance(text, str):
+            text = str(text)
+
+        emotion_value = data.get("emotion", self.last_valid_emotion.value)
+        emotion = self._coerce_emotion(emotion_value)
+
+        intensity_value = data.get("intensity", 0.5)
+        try:
+            intensity = float(intensity_value)
+        except (TypeError, ValueError):
+            intensity = 0.5
+        intensity = max(0.0, min(1.0, intensity))
+
+        voice_direction = data.get("voice_direction", "")
+        if not isinstance(voice_direction, str):
+            voice_direction = str(voice_direction)
+
+        if self.json_parse_failure_count > 0:
+            logger.info(
+                "JSON 파싱 복구 성공 (누적 실패 %d회)",
+                self.json_parse_failure_count,
             )
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning(f"JSON 파싱 실패, 텍스트로 처리: {e}")
-            # JSON 파싱 실패 시 원본 텍스트를 그대로 사용
-            return LLMResponse(
-                text=raw_text,
-                emotion=EmotionType.NEUTRAL,
-                intensity=0.5,
-                voice_direction="",
+            self.json_parse_failure_count = 0
+
+        self.last_valid_emotion = emotion
+
+        return LLMResponse(
+            text=text,
+            emotion=emotion,
+            intensity=intensity,
+            voice_direction=voice_direction,
+        )
+
+    def _coerce_emotion(self, emotion_value: object) -> EmotionType:
+        if not isinstance(emotion_value, str):
+            return self.last_valid_emotion
+
+        candidate = emotion_value.strip().lower()
+        try:
+            return EmotionType(candidate)
+        except ValueError:
+            logger.warning(
+                "알 수 없는 emotion 값 수신: %s (fallback=%s)",
+                emotion_value,
+                self.last_valid_emotion.value,
             )
+            return self.last_valid_emotion
+
+    def _extract_json_object(self, text: str) -> Optional[str]:
+        start = text.find("{")
+        if start < 0:
+            return None
+
+        depth = 0
+        in_string = False
+        escape = False
+
+        for idx in range(start, len(text)):
+            ch = text[idx]
+
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == "\"":
+                    in_string = False
+                continue
+
+            if ch == "\"":
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:idx + 1]
+
+        return None
 
     def clear_history(self) -> None:
         """대화 기록을 초기화합니다."""

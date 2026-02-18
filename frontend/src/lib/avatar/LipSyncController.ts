@@ -29,7 +29,7 @@ export class LipSyncController {
     this.activeChangeCallback = activeChangeCallback ?? null;
   }
 
-  update(_delta: number): void {
+  update(delta: number): void {
     this.analyser.getByteFrequencyData(this.dataArray);
 
     // fftSize=256 → frequencyBinCount=128
@@ -44,7 +44,7 @@ export class LipSyncController {
     const normalized = Math.min(1.0, avg / 140);
 
     // 스무딩
-    const smoothing = 0.55;
+    const smoothing = Math.exp(-Math.max(0.001, delta) * 14);
     this.smoothedValue = this.smoothedValue * smoothing + normalized * (1 - smoothing);
 
     const expressions = this.vrm.expressionManager;
