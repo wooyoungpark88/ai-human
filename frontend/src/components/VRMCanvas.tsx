@@ -10,10 +10,13 @@ interface VRMCharacterProps {
   controllers: VRMAvatarControllers;
 }
 
+const AVATAR_Y_OFFSET = -0.16;
+
 function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
   const { scene, camera } = useThree();
   const addedRef = useRef(false);
   const diagCountRef = useRef(0);
+  const originalYRef = useRef<number | null>(null);
 
   useEffect(() => {
     // 가슴 중앙을 바라보도록 설정 (머리가 잘리지 않도록)
@@ -22,11 +25,17 @@ function VRMCharacter({ vrm, controllers }: VRMCharacterProps) {
 
   useEffect(() => {
     if (vrm.scene && !addedRef.current) {
+      originalYRef.current = vrm.scene.position.y;
+      vrm.scene.position.y = (originalYRef.current ?? 0) + AVATAR_Y_OFFSET;
       scene.add(vrm.scene);
       addedRef.current = true;
     }
     return () => {
       if (addedRef.current && vrm.scene) {
+        if (originalYRef.current !== null) {
+          vrm.scene.position.y = originalYRef.current;
+          originalYRef.current = null;
+        }
         scene.remove(vrm.scene);
         addedRef.current = false;
       }
