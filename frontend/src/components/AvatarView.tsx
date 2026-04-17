@@ -99,6 +99,42 @@ export function AvatarView({
         </div>
       )}
 
+      {/* FlashHead 아바타 (로컬 GPU 사이드카, 케이스별 학습 모델) */}
+      {avatarType === "flashhead" && (
+        <div className="absolute inset-0">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          <audio ref={audioRef} autoPlay />
+          {isInitialized && !hasVideoStream && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95">
+              <div className="text-center">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center">
+                  <svg
+                    className="w-14 h-14 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-emerald-300 text-sm font-medium">AI Avatar</p>
+                <p className="text-slate-500 text-xs mt-1">FlashHead (local)</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Simli 아바타 — video/audio는 initialize() 전에 DOM에 마운트 필요 */}
       {avatarType === "simli" && (
         <div className="absolute inset-0">
@@ -146,7 +182,9 @@ export function AvatarView({
                 ? "Beyond Presence 연결 중..."
                 : avatarType === "simli"
                   ? "Simli 연결 중..."
-                  : "아바타 로딩 중..."}
+                  : avatarType === "flashhead"
+                    ? "FlashHead 사이드카 연결 중..."
+                    : "아바타 로딩 중..."}
             </p>
           </div>
         </div>

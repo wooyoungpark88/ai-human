@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
 
+    # FlashHead 사이드카 (OpenAvatarChat 기반 로컬 아바타 엔진)
+    # 미설정 시 flashhead avatar_type은 비활성 — Simli/VRM으로 fallback
+    FLASHHEAD_SIDECAR_URL: str = ""
+
     # Server — Railway는 PORT를 주입하므로 BACKEND_PORT/PORT 둘 다 허용
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = Field(

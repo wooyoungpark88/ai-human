@@ -56,7 +56,7 @@ export type ConnectionStatus =
   | "error";
 
 /** 아바타 타입 */
-export type AvatarType = "vrm" | "video" | "simli";
+export type AvatarType = "vrm" | "video" | "simli" | "flashhead";
 
 /** 내담자 케이스 정보 */
 export interface CaseInfo {
@@ -73,6 +73,7 @@ export interface CaseInfo {
   avatar_type?: AvatarType;
   bp_agent_id?: string;
   simli_face_id?: string;
+  flashhead_model_id?: string;
 }
 
 /** 피드백 평가 항목 */

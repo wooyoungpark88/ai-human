@@ -127,6 +127,7 @@ async def list_cases():
                 "avatar_type": data.get("avatar_type", "vrm"),
                 "bp_agent_id": data.get("bp_agent_id", ""),
                 "simli_face_id": data.get("simli_face_id", ""),
+                "flashhead_model_id": data.get("flashhead_model_id", ""),
             })
     return {"cases": cases}
 

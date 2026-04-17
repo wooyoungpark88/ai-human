@@ -66,6 +66,9 @@ class ClientProfile(BaseModel):
     voice_id: Optional[str] = None
 
 
+AvatarType = Literal["vrm", "video", "simli", "flashhead"]
+
+
 class CaseProfile(BaseModel):
     """상담 훈련용 내담자 케이스 프로필 — AI가 연기할 인물"""
     id: str
@@ -88,6 +91,9 @@ class CaseProfile(BaseModel):
     system_prompt: str
     voice_id: Optional[str] = None
     face_id: Optional[str] = None
+    # FlashHead 로컬 아바타 — 케이스별 학습된 얼굴 모델 식별자 (사이드카가 해석)
+    avatar_type: Optional[AvatarType] = None
+    flashhead_model_id: Optional[str] = None
 
 
 class FeedbackCategory(BaseModel):
