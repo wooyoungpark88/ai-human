@@ -50,6 +50,30 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
   advanced: "bg-red-100 text-red-800",
 };
 
+/** 감정별 아바타 카드 글로우 (Tailwind shadow) */
+export const EMOTION_GLOW: Record<EmotionType, string> = {
+  neutral: "shadow-none",
+  happy: "shadow-[0_0_25px_rgba(250,204,21,0.4)]",
+  sad: "shadow-[0_0_25px_rgba(96,165,250,0.4)]",
+  angry: "shadow-[0_0_25px_rgba(248,113,113,0.4)]",
+  surprised: "shadow-[0_0_25px_rgba(192,132,252,0.4)]",
+  thinking: "shadow-[0_0_25px_rgba(129,140,248,0.4)]",
+  anxious: "shadow-[0_0_25px_rgba(251,146,60,0.4)]",
+  empathetic: "shadow-[0_0_25px_rgba(74,222,128,0.4)]",
+};
+
+/** 감정별 아바타 카드 보더 (Tailwind border-color) */
+export const EMOTION_BORDER: Record<EmotionType, string> = {
+  neutral: "border-transparent",
+  happy: "border-yellow-400/60",
+  sad: "border-blue-400/60",
+  angry: "border-red-400/60",
+  surprised: "border-purple-400/60",
+  thinking: "border-indigo-400/60",
+  anxious: "border-orange-400/60",
+  empathetic: "border-green-400/60",
+};
+
 /** 감정별 UI 매핑 */
 export const EMOTION_MAP: Record<EmotionType, EmotionInfo> = {
   neutral: { label: "평온", emoji: "😐", color: "bg-gray-100 text-gray-800" },

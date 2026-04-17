@@ -18,6 +18,7 @@ import websockets
 from backend.config import settings
 from backend.models.schemas import EmotionMapping
 from backend.services.emotion_mapper import build_tagged_text
+from backend.utils import validate_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +36,7 @@ class ElevenLabsTTSService:
 
     def _is_api_key_valid(self) -> bool:
         """API 키가 유효한지 확인합니다."""
-        key = self.api_key
-        return bool(key) and not key.startswith("your_") and len(key) > 10
+        return validate_api_key(self.api_key)
 
     def _supports_audio_tags(self) -> bool:
         """Audio tags는 eleven_v3 계열 모델에서만 지원됩니다."""

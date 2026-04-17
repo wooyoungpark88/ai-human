@@ -1,14 +1,17 @@
 """Claude LLM 대화 생성 + 감정 태그 서비스"""
 
-import json
 import logging
-from typing import Optional
+from typing import Optional, TypeVar
 from pathlib import Path
 
 import anthropic
+from pydantic import BaseModel
 
 from backend.config import settings
 from backend.models.schemas import LLMResponse, EmotionType, ClientProfile, CaseProfile
+from backend.utils import load_json_file, parse_json_from_text, validate_api_key
+
+ProfileT = TypeVar("ProfileT", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
 
@@ -47,57 +50,51 @@ class ClaudeLLMService:
 
     def __init__(self):
         self.client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self.conversation_history: list[dict] = []
+        self.conversation_history: list[dict[str, str]] = []
         self.system_prompt: str = DEFAULT_SYSTEM_PROMPT
-        self.max_history_length: int = 20  # 최대 대화 기록 수
+        self.max_history_length: int = settings.MAX_CONVERSATION_HISTORY
         self.last_valid_emotion: EmotionType = EmotionType.NEUTRAL
         self.json_parse_failure_count: int = 0
 
+    def _load_profile_file(
+        self,
+        directory: Path,
+        profile_id: str,
+        profile_class: type[ProfileT],
+        label: str,
+    ) -> Optional[ProfileT]:
+        """디렉토리에서 JSON 프로필을 로드하고 지정된 Pydantic 모델로 파싱합니다."""
+        data = load_json_file(directory / f"{profile_id}.json")
+        if data is None:
+            logger.warning(f"{label} 파일 없음 또는 로드 실패: {profile_id}")
+            return None
+        try:
+            profile = profile_class(**data)
+        except Exception as e:
+            logger.error(f"{label} 파싱 오류: {e}")
+            return None
+
+        if getattr(profile, "system_prompt", None):
+            self.system_prompt = profile.system_prompt
+        return profile
+
     def load_profile(self, profile_id: str = "default") -> Optional[ClientProfile]:
         """내담자 프로필을 로드합니다."""
-        profile_path = PROFILES_DIR / f"{profile_id}.json"
-        if not profile_path.exists():
-            logger.warning(f"프로필 파일 없음: {profile_path}")
-            return None
-
-        try:
-            with open(profile_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            profile = ClientProfile(**data)
-
-            # 프로필의 시스템 프롬프트를 사용
-            if profile.system_prompt:
-                self.system_prompt = profile.system_prompt
+        profile = self._load_profile_file(PROFILES_DIR, profile_id, ClientProfile, "프로필")
+        if profile:
             logger.info(f"프로필 로드 완료: {profile.name}")
-            return profile
-        except Exception as e:
-            logger.error(f"프로필 로드 오류: {e}")
-            return None
+        return profile
 
     def load_case_profile(self, case_id: str) -> Optional[CaseProfile]:
         """상담 훈련용 내담자 케이스 프로필을 로드합니다."""
-        profile_path = CASE_PROFILES_DIR / f"{case_id}.json"
-        if not profile_path.exists():
-            logger.warning(f"케이스 프로필 파일 없음: {profile_path}")
-            return None
-
-        try:
-            with open(profile_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            case_profile = CaseProfile(**data)
-
-            if case_profile.system_prompt:
-                self.system_prompt = case_profile.system_prompt
-            logger.info(f"케이스 프로필 로드 완료: {case_profile.name} ({case_profile.presenting_issue})")
-            return case_profile
-        except Exception as e:
-            logger.error(f"케이스 프로필 로드 오류: {e}")
-            return None
+        profile = self._load_profile_file(CASE_PROFILES_DIR, case_id, CaseProfile, "케이스 프로필")
+        if profile:
+            logger.info(f"케이스 프로필 로드 완료: {profile.name} ({profile.presenting_issue})")
+        return profile
 
     def _is_api_key_valid(self) -> bool:
         """API 키가 유효한지 확인합니다 (플레이스홀더 아닌지)."""
-        key = settings.ANTHROPIC_API_KEY
-        return bool(key) and not key.startswith("your_") and len(key) > 10
+        return validate_api_key(settings.ANTHROPIC_API_KEY)
 
     async def generate_response(self, user_text: str) -> LLMResponse:
         """사용자 텍스트에 대한 대화 응답과 감정을 생성합니다 (스트리밍).
@@ -168,34 +165,18 @@ class ClaudeLLMService:
 
     def _parse_response(self, raw_text: str) -> LLMResponse:
         """LLM 응답 텍스트에서 JSON을 파싱합니다."""
-        text = raw_text.strip()
-        if text.startswith("```"):
-            # 코드 블록 제거
-            lines = text.split("\n")
-            text = "\n".join(lines[1:-1]) if len(lines) > 2 else text
-
-        # 1차: 전체 텍스트를 JSON으로 직접 파싱
-        try:
-            data = json.loads(text)
-            return self._build_response_from_data(data, raw_text)
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            first_error = e
-
-        # 2차: 텍스트 내부에서 JSON 객체 블록만 추출하여 파싱
-        json_block = self._extract_json_object(text)
-        if json_block:
+        data = parse_json_from_text(raw_text)
+        if data is not None:
             try:
-                data = json.loads(json_block)
                 return self._build_response_from_data(data, raw_text)
-            except (json.JSONDecodeError, ValueError, TypeError) as e:
-                logger.warning(f"JSON 블록 파싱 실패: {e}")
+            except TypeError as e:
+                logger.warning(f"LLM 응답 구조 오류: {e}")
 
         self.json_parse_failure_count += 1
         logger.warning(
-            "JSON 파싱 실패(%d회) - 이전 유효 감정 유지: %s | error=%s",
+            "JSON 파싱 실패(%d회) - 이전 유효 감정 유지: %s",
             self.json_parse_failure_count,
             self.last_valid_emotion.value,
-            first_error,
         )
 
         # 파싱 실패 시 감정을 neutral로 강제하지 않고 직전 유효 감정 유지
@@ -258,38 +239,6 @@ class ClaudeLLMService:
                 self.last_valid_emotion.value,
             )
             return self.last_valid_emotion
-
-    def _extract_json_object(self, text: str) -> Optional[str]:
-        start = text.find("{")
-        if start < 0:
-            return None
-
-        depth = 0
-        in_string = False
-        escape = False
-
-        for idx in range(start, len(text)):
-            ch = text[idx]
-
-            if in_string:
-                if escape:
-                    escape = False
-                elif ch == "\\":
-                    escape = True
-                elif ch == "\"":
-                    in_string = False
-                continue
-
-            if ch == "\"":
-                in_string = True
-            elif ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    return text[start:idx + 1]
-
-        return None
 
     def clear_history(self) -> None:
         """대화 기록을 초기화합니다."""

@@ -20,6 +20,7 @@ from backend.services.tts_service import ElevenLabsTTSService
 from backend.services.emotion_mapper import get_emotion_mapping
 from backend.services import supabase_service
 from backend.services.feedback_service import FeedbackService
+from backend.utils import load_json_file
 
 PROFILES_DIR = Path(__file__).resolve().parent / "client_profiles"
 CASE_PROFILES_DIR = Path(__file__).resolve().parent / "case_profiles"
@@ -92,16 +93,14 @@ async def list_profiles():
     profiles = []
     if PROFILES_DIR.exists():
         for profile_path in PROFILES_DIR.glob("*.json"):
-            try:
-                with open(profile_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                profiles.append({
-                    "id": data.get("id", profile_path.stem),
-                    "name": data.get("name", ""),
-                    "description": data.get("description", ""),
-                })
-            except Exception as e:
-                logger.warning(f"프로필 로드 실패: {profile_path}: {e}")
+            data = load_json_file(profile_path)
+            if data is None:
+                continue
+            profiles.append({
+                "id": data.get("id", profile_path.stem),
+                "name": data.get("name", ""),
+                "description": data.get("description", ""),
+            })
     return {"profiles": profiles}
 
 
@@ -111,46 +110,37 @@ async def list_cases():
     cases = []
     if CASE_PROFILES_DIR.exists():
         for case_path in CASE_PROFILES_DIR.glob("*.json"):
-            try:
-                with open(case_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                cases.append({
-                    "id": data.get("id", case_path.stem),
-                    "name": data.get("name", ""),
-                    "age": data.get("age", 0),
-                    "gender": data.get("gender", ""),
-                    "occupation": data.get("occupation", ""),
-                    "presenting_issue": data.get("presenting_issue", ""),
-                    "category": data.get("category", ""),
-                    "difficulty": data.get("difficulty", "beginner"),
-                    "description": data.get("description", ""),
-                    "session_goals": data.get("session_goals", []),
-                    "avatar_type": data.get("avatar_type", "vrm"),
-                    "bp_agent_id": data.get("bp_agent_id", ""),
-                    "simli_face_id": data.get("simli_face_id", ""),
-                })
-            except Exception as e:
-                logger.warning(f"케이스 로드 실패: {case_path}: {e}")
+            data = load_json_file(case_path)
+            if data is None:
+                continue
+            cases.append({
+                "id": data.get("id", case_path.stem),
+                "name": data.get("name", ""),
+                "age": data.get("age", 0),
+                "gender": data.get("gender", ""),
+                "occupation": data.get("occupation", ""),
+                "presenting_issue": data.get("presenting_issue", ""),
+                "category": data.get("category", ""),
+                "difficulty": data.get("difficulty", "beginner"),
+                "description": data.get("description", ""),
+                "session_goals": data.get("session_goals", []),
+                "avatar_type": data.get("avatar_type", "vrm"),
+                "bp_agent_id": data.get("bp_agent_id", ""),
+                "simli_face_id": data.get("simli_face_id", ""),
+            })
     return {"cases": cases}
 
 
 @app.get("/api/cases/{case_id}")
 async def get_case_detail(case_id: str):
     """케이스 상세 정보를 반환합니다 (system_prompt, hidden_issues 제외)."""
-    case_path = CASE_PROFILES_DIR / f"{case_id}.json"
-    if not case_path.exists():
+    data = load_json_file(CASE_PROFILES_DIR / f"{case_id}.json")
+    if data is None:
         return {"error": "케이스를 찾을 수 없습니다."}
-
-    try:
-        with open(case_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        # system_prompt와 hidden_issues는 상담사에게 노출하지 않음
-        data.pop("system_prompt", None)
-        data.pop("hidden_issues", None)
-        return data
-    except Exception as e:
-        logger.error(f"케이스 상세 로드 실패: {e}")
-        return {"error": "케이스 로드 중 오류가 발생했습니다."}
+    # system_prompt와 hidden_issues는 상담사에게 노출하지 않음
+    data.pop("system_prompt", None)
+    data.pop("hidden_issues", None)
+    return data
 
 
 class FeedbackMessageItem(PydanticBaseModel):
@@ -167,11 +157,7 @@ feedback_service = FeedbackService()
 async def generate_feedback(request: FeedbackRequest):
     """상담 세션의 피드백을 생성합니다."""
     # 케이스 정보 로드
-    case_path = CASE_PROFILES_DIR / f"{request.case_id}.json"
-    case_info = {}
-    if case_path.exists():
-        with open(case_path, "r", encoding="utf-8") as f:
-            case_info = json.load(f)
+    case_info = load_json_file(CASE_PROFILES_DIR / f"{request.case_id}.json") or {}
 
     messages = [{"role": m.role, "text": m.text} for m in request.messages]
 

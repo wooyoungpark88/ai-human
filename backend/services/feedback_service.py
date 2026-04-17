@@ -1,13 +1,12 @@
 """상담 수행 평가 피드백 서비스 — Claude를 수퍼바이저로 활용"""
 
-import json
 import logging
-from typing import Optional
 
 import anthropic
 
 from backend.config import settings
 from backend.models.schemas import SessionFeedback, FeedbackCategory
+from backend.utils import parse_json_from_text
 
 logger = logging.getLogger(__name__)
 
@@ -119,13 +118,12 @@ class FeedbackService:
         return "\n".join(parts) if parts else "(케이스 정보 없음)"
 
     def _parse_feedback(self, raw_text: str, case_id: str) -> SessionFeedback:
-        try:
-            text = raw_text.strip()
-            if text.startswith("```"):
-                lines = text.split("\n")
-                text = "\n".join(lines[1:-1]) if len(lines) > 2 else text
+        data = parse_json_from_text(raw_text)
+        if data is None:
+            logger.warning("피드백 JSON 파싱 실패")
+            return self._fallback_feedback(case_id, "JSON 파싱 실패")
 
-            data = json.loads(text)
+        try:
             categories = [
                 FeedbackCategory(**cat) for cat in data.get("categories", [])
             ]
@@ -138,9 +136,9 @@ class FeedbackService:
                 improvements=data.get("improvements", []),
                 recommendations=data.get("recommendations", []),
             )
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning(f"피드백 JSON 파싱 실패: {e}")
-            return self._fallback_feedback(case_id, f"파싱 오류: {e}")
+        except (ValueError, TypeError) as e:
+            logger.warning(f"피드백 구조 오류: {e}")
+            return self._fallback_feedback(case_id, f"구조 오류: {e}")
 
     def _fallback_feedback(self, case_id: str, error_msg: str) -> SessionFeedback:
         return SessionFeedback(

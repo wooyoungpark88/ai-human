@@ -5,29 +5,8 @@ import { Card } from "@/components/ui/card";
 import { VRMScene } from "@/components/VRMScene";
 import type { VRM } from "@pixiv/three-vrm";
 import type { EmotionType, AvatarType } from "@/lib/types";
+import { EMOTION_GLOW, EMOTION_BORDER } from "@/lib/constants";
 import type { VRMAvatarControllers } from "@/hooks/useVRMAvatar";
-
-const EMOTION_GLOW: Record<string, string> = {
-  neutral: "shadow-none",
-  happy: "shadow-[0_0_25px_rgba(250,204,21,0.4)]",
-  sad: "shadow-[0_0_25px_rgba(96,165,250,0.4)]",
-  angry: "shadow-[0_0_25px_rgba(248,113,113,0.4)]",
-  surprised: "shadow-[0_0_25px_rgba(192,132,252,0.4)]",
-  thinking: "shadow-[0_0_25px_rgba(129,140,248,0.4)]",
-  anxious: "shadow-[0_0_25px_rgba(251,146,60,0.4)]",
-  empathetic: "shadow-[0_0_25px_rgba(74,222,128,0.4)]",
-};
-
-const EMOTION_BORDER: Record<string, string> = {
-  neutral: "border-transparent",
-  happy: "border-yellow-400/60",
-  sad: "border-blue-400/60",
-  angry: "border-red-400/60",
-  surprised: "border-purple-400/60",
-  thinking: "border-indigo-400/60",
-  anxious: "border-orange-400/60",
-  empathetic: "border-green-400/60",
-};
 
 interface AvatarViewProps {
   avatarType?: AvatarType;
