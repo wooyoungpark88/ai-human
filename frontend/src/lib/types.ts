@@ -74,6 +74,7 @@ export interface CaseInfo {
   bp_agent_id?: string;
   simli_face_id?: string;
   flashhead_model_id?: string;
+  external_url?: string;
 }
 
 /** 피드백 평가 항목 */

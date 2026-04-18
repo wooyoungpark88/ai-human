@@ -128,6 +128,7 @@ async def list_cases():
                 "bp_agent_id": data.get("bp_agent_id", ""),
                 "simli_face_id": data.get("simli_face_id", ""),
                 "flashhead_model_id": data.get("flashhead_model_id", ""),
+                "external_url": data.get("external_url", ""),
             })
     return {"cases": cases}
 

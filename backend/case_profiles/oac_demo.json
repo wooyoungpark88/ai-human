@@ -1,0 +1,29 @@
+{
+  "id": "oac_demo",
+  "name": "오은정 (OAC 데모)",
+  "age": 32,
+  "gender": "여성",
+  "occupation": "직장인 / 워킹맘",
+  "presenting_issue": "OpenAvatarChat 로컬 GPU 실시간 한국어 대화 데모",
+  "category": "depression",
+  "difficulty": "beginner",
+  "description": "내 노트북의 RTX 5080 GPU에서 직접 돌아가는 AI 휴먼입니다. 클라우드(Simli/BP) 대신 로컬 OpenAvatarChat의 FlashHead 엔진을 사용해 한국어 대화 + 립싱크 + 표정을 실시간 생성합니다. '데모 열기' 클릭 시 OpenAvatarChat 자체 UI가 새 탭으로 열립니다. (https://localhost:8282 — 자체 서명 인증서 경고는 '고급' → '계속'으로 우회)",
+  "personality": "OAC 사이드카가 자체 LLM(Claude)으로 응답하며, 페르소나는 OAC config의 system_prompt에서 정의됩니다.",
+  "speaking_style": "한국어 자연스러운 상담사 톤 (Edge TTS ko-KR-SunHiNeural)",
+  "background_story": "이 시나리오는 ai-human 서비스 본체와 무관하게, 별도의 OpenAvatarChat 사이드카(WSL2 + RTX 5080 + FlashHead Lite)에서 동작합니다. 아바타 얼굴은 사이드카의 cond_image_path 설정 이미지(현재: girl.png).",
+  "symptoms": [],
+  "hidden_issues": [],
+  "emotional_baseline": "neutral",
+  "resistance_level": 0.0,
+  "session_goals": [
+    "로컬 GPU 실시간 한국어 대화 품질 체험",
+    "FlashHead 립싱크/표정 자연스러움 평가",
+    "Simli/BP 대비 응답 지연·자연도 비교"
+  ],
+  "system_prompt": "(OAC 사이드카가 자체 system_prompt를 사용하므로 본 필드는 미사용)",
+  "avatar_type": "flashhead",
+  "flashhead_model_id": "default",
+  "external_url": "https://localhost:8282",
+  "voice_id": null,
+  "face_id": null
+}

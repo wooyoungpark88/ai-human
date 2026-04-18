@@ -94,6 +94,8 @@ class CaseProfile(BaseModel):
     # FlashHead 로컬 아바타 — 케이스별 학습된 얼굴 모델 식별자 (사이드카가 해석)
     avatar_type: Optional[AvatarType] = None
     flashhead_model_id: Optional[str] = None
+    # 외부 데모 페이지 URL — 설정 시 카드 클릭이 새 탭으로 이동 (예: OAC 사이드카 자체 UI)
+    external_url: Optional[str] = None
 
 
 class FeedbackCategory(BaseModel):

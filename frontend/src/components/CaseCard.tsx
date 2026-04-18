@@ -55,6 +55,11 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
               VRM
             </Badge>
           )}
+          {avatarType === "flashhead" && (
+            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+              OpenAvatarChat
+            </Badge>
+          )}
         </div>
         <CardTitle className="text-base">
           {caseInfo.name} ({caseInfo.age}세/{caseInfo.gender})
@@ -87,11 +92,24 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
       </CardContent>
 
       <CardFooter>
-        <Link href={`/session/${caseInfo.id}`} className="w-full">
-          <Button className="w-full" size="sm">
-            상담 시작
-          </Button>
-        </Link>
+        {caseInfo.external_url ? (
+          <a
+            href={caseInfo.external_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full"
+          >
+            <Button className="w-full" size="sm">
+              데모 열기 (새 탭)
+            </Button>
+          </a>
+        ) : (
+          <Link href={`/session/${caseInfo.id}`} className="w-full">
+            <Button className="w-full" size="sm">
+              상담 시작
+            </Button>
+          </Link>
+        )}
       </CardFooter>
     </Card>
   );
