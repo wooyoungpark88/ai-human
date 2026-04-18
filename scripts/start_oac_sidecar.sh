@@ -35,9 +35,10 @@ export PATH="${HOME}/.local/bin:${PATH}"
 echo "[6] OAC 디렉토리 이동: $(pwd)"
 
 # 키를 yaml에 직접 적지 않고, 임시 config로 치환 (transcript/git에 노출 방지)
-SRC_CONFIG="config/chat_korean_claude_flashhead.yaml"
+SRC_CONFIG="${OAC_CONFIG:-config/chat_korean_claude_flashhead_duplex.yaml}"
 TMP_CONFIG="/tmp/oac_active_config.yaml"
-sed "s|__API_KEY_PLACEHOLDER__|${OPENAI_API_KEY}|" "${SRC_CONFIG}" > "${TMP_CONFIG}"
+# 모든 placeholder를 전역 치환 (sed 기본은 첫 번째만 — g 옵션 명시)
+sed "s|__API_KEY_PLACEHOLDER__|${OPENAI_API_KEY}|g" "${SRC_CONFIG}" > "${TMP_CONFIG}"
 chmod 600 "${TMP_CONFIG}"
 echo "[7] 임시 config 생성: ${TMP_CONFIG}"
 
