@@ -18,7 +18,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
 
-    if (username === "wooyoung" && password === "1234") {
+    if (username === "wooyoung" && password === "qwer11!!") {
       document.cookie = `session=${btoa(username)}; path=/; max-age=${60 * 60 * 24 * 7}`;
       router.push("/");
     } else {

@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # 미설정 시 flashhead avatar_type은 비활성 — Simli/VRM으로 fallback
     FLASHHEAD_SIDECAR_URL: str = ""
 
+    # DeepBrain AI Human Web SDK (aihuman.aistudios.com)
+    # userKey는 절대 클라이언트에 노출 금지 — 서버에서만 JWT 서명에 사용
+    DEEPBRAIN_APP_ID: str = ""
+    DEEPBRAIN_USER_KEY: str = ""
+
     # Server — Railway는 PORT를 주입하므로 BACKEND_PORT/PORT 둘 다 허용
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = Field(

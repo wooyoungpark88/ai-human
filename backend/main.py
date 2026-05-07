@@ -8,6 +8,7 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import jwt
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel as PydanticBaseModel
@@ -128,6 +129,7 @@ async def list_cases():
                 "bp_agent_id": data.get("bp_agent_id", ""),
                 "simli_face_id": data.get("simli_face_id", ""),
                 "flashhead_model_id": data.get("flashhead_model_id", ""),
+                "deepbrain_avatar_id": data.get("deepbrain_avatar_id", ""),
                 "external_url": data.get("external_url", ""),
             })
     return {"cases": cases}
@@ -143,6 +145,35 @@ async def get_case_detail(case_id: str):
     data.pop("system_prompt", None)
     data.pop("hidden_issues", None)
     return data
+
+
+@app.get("/api/deepbrain/jwt")
+async def deepbrain_jwt():
+    """DeepBrain AI Human Web SDK용 JWT 발급.
+
+    클라이언트가 GET 호출 → AIPlayer.generateToken({appId, token})에 그대로 전달.
+    userKey는 서버 비밀이라 응답에 포함하지 않음.
+    """
+    if not settings.DEEPBRAIN_APP_ID or not settings.DEEPBRAIN_USER_KEY:
+        return {"error": "DEEPBRAIN_APP_ID/USER_KEY 미설정"}
+    try:
+        now = int(time.time())
+        payload = {
+            "appId": settings.DEEPBRAIN_APP_ID,
+            "platform": "web",
+            "iat": now,
+            "exp": now + 60 * 5,  # 5분 만료 (샘플 동일)
+        }
+        token = jwt.encode(
+            payload,
+            settings.DEEPBRAIN_USER_KEY,
+            algorithm="HS256",
+            headers={"typ": "JWT", "alg": "HS256"},
+        )
+        return {"appId": settings.DEEPBRAIN_APP_ID, "token": token}
+    except Exception as e:
+        logger.error(f"DeepBrain JWT 발급 실패: {e}")
+        return {"error": str(e)}
 
 
 class FeedbackMessageItem(PydanticBaseModel):

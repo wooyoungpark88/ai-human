@@ -3,16 +3,16 @@ import type { EmotionType } from "@/lib/types";
 
 type ExpressionTarget = Record<string, number>;
 
-// 상담사 감정 매핑: 다중 블렌드셰이프 조합, 절제된 강도
+// 내담자 감정 매핑: 감정 표현이 뚜렷하도록 강화된 블렌드셰이프 값
 const EMOTION_TO_VRM: Record<EmotionType, ExpressionTarget> = {
-  neutral:    { happy: 0.1,  relaxed: 0.4 },
-  happy:      { happy: 0.6,  relaxed: 0.2 },
-  sad:        { sad: 0.5,    relaxed: 0.1 },
-  angry:      { angry: 0.3,  sad: 0.15 },
-  surprised:  { surprised: 0.45, happy: 0.15, relaxed: 0.1 },
-  thinking:   { relaxed: 0.3, sad: 0.08, surprised: 0.05, ou: 0.12 },
-  anxious:    { sad: 0.25, surprised: 0.15, relaxed: 0.05, happy: 0.05 },
-  empathetic: { happy: 0.25, sad: 0.2, relaxed: 0.35 },
+  neutral:    { happy: 0.05, relaxed: 0.3 },
+  happy:      { happy: 0.85, relaxed: 0.15 },
+  sad:        { sad: 0.8,    relaxed: 0.05 },
+  angry:      { angry: 0.7,  sad: 0.2 },
+  surprised:  { surprised: 0.8, happy: 0.15, relaxed: 0.05 },
+  thinking:   { relaxed: 0.35, sad: 0.12, surprised: 0.08, ou: 0.18 },
+  anxious:    { sad: 0.45, surprised: 0.3, relaxed: 0.05, happy: 0.03 },
+  empathetic: { happy: 0.35, sad: 0.3, relaxed: 0.3 },
 };
 
 const ALL_EMOTION_EXPRESSIONS = [
@@ -23,8 +23,8 @@ const ALL_EMOTION_EXPRESSIONS = [
 const MOUTH_EXPRESSIONS = new Set(["aa", "ih", "ou", "ee", "oh"]);
 
 // 지수 스무딩 설정
-const ONSET_SPEED = 1.2;   // 표정 나타남 (~1.5초에 90%)
-const OFFSET_SPEED = 0.8;  // 표정 사라짐 (~2.2초에 10%)
+const ONSET_SPEED = 2.5;   // 표정 나타남 (~0.7초에 90%)
+const OFFSET_SPEED = 1.2;  // 표정 사라짐 (~1.5초에 10%)
 
 // 미세표정 호흡
 const BREATHING_SPEED = 0.4;
@@ -83,8 +83,8 @@ export class ExpressionController {
 
   setEmotion(emotion: EmotionType, intensity: number): void {
     const template = EMOTION_TO_VRM[emotion] || EMOTION_TO_VRM.neutral;
-    // 상담사 매핑이 이미 절제된 값이므로 하한 보정
-    const adjusted = 0.4 + intensity * 0.6;
+    // intensity 스케일링: 낮은 intensity에서도 표정이 보이도록 하한 보정
+    const adjusted = 0.3 + intensity * 0.7;
     console.log(`[Expression] setEmotion: ${emotion}, intensity: ${intensity.toFixed(2)} → adjusted: ${adjusted.toFixed(2)}`);
     for (const name of ALL_EMOTION_EXPRESSIONS) {
       this.targetValues[name] = (template[name] || 0) * adjusted;

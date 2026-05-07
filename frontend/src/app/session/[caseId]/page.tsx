@@ -15,6 +15,7 @@ import { useMicrophone } from "@/hooks/useMicrophone";
 import { useVRMAvatar } from "@/hooks/useVRMAvatar";
 import { useVideoAvatar } from "@/hooks/useVideoAvatar";
 import { useSimliAvatar } from "@/hooks/useSimliAvatar";
+import { useDeepBrainAvatar } from "@/hooks/useDeepBrainAvatar";
 import { API_URL } from "@/lib/constants";
 import type {
   ChatMessage,
@@ -60,6 +61,11 @@ export default function SessionPage() {
   const simliAvatar = useSimliAvatar({
     faceId: caseInfo?.simli_face_id || undefined,
   });
+  const deepbrainAvatar = useDeepBrainAvatar({
+    // 케이스 프로필의 deepbrain_avatar_id가 곧 AIPlayer.init({ aiName }) 값.
+    // 비워두면 generateToken 응답의 defaultAI.ai_name 사용.
+    aiName: caseInfo?.deepbrain_avatar_id || undefined,
+  });
 
   // 활성 아바타 선택
   const avatar = useMemo(() => {
@@ -87,6 +93,18 @@ export default function SessionPage() {
         close: simliAvatar.close,
       };
     }
+    if (avatarType === "deepbrain") {
+      return {
+        isInitialized: deepbrainAvatar.isInitialized,
+        isLoading: deepbrainAvatar.isLoading,
+        error: deepbrainAvatar.error,
+        initialize: deepbrainAvatar.initialize,
+        sendBase64Audio: deepbrainAvatar.sendBase64Audio,
+        setEmotion: deepbrainAvatar.setEmotion,
+        setConversationPhase: deepbrainAvatar.setConversationPhase,
+        close: deepbrainAvatar.close,
+      };
+    }
     return {
       isInitialized: vrmAvatar.isInitialized,
       isLoading: vrmAvatar.isLoading,
@@ -97,7 +115,7 @@ export default function SessionPage() {
       setConversationPhase: vrmAvatar.setConversationPhase,
       close: vrmAvatar.close,
     };
-  }, [avatarType, vrmAvatar, videoAvatar, simliAvatar]);
+  }, [avatarType, vrmAvatar, videoAvatar, simliAvatar, deepbrainAvatar]);
 
   // 케이스 정보 로드
   useEffect(() => {
@@ -142,6 +160,10 @@ export default function SessionPage() {
                 timestamp: new Date(),
               },
             ]);
+            // DeepBrain은 자체 TTS — 텍스트를 SDK에 직접 전달
+            if (avatarType === "deepbrain") {
+              deepbrainAvatar.speakText(message.text);
+            }
           }
           setIsThinking(false);
           break;
@@ -200,7 +222,7 @@ export default function SessionPage() {
           break;
       }
     },
-    [avatar]
+    [avatar, avatarType, deepbrainAvatar]
   );
 
   // WebSocket 훅
@@ -245,6 +267,8 @@ export default function SessionPage() {
       // BP Managed Agent: STT만 사용 (LLM/TTS는 BP 내장 파이프라인)
       ws.connect(caseId, "stt_only");
     } else {
+      // DeepBrain은 자체 TTS지만 backend에 별도 모드가 없어 full로 연결 후
+      // sendBase64Audio를 no-op으로 두고 speakText(text)만 사용함
       ws.connect(caseId);
     }
     await avatar.initialize();
@@ -381,6 +405,11 @@ export default function SessionPage() {
               Simli
             </Badge>
           )}
+          {avatarType === "deepbrain" && (
+            <Badge variant="secondary" className="bg-sky-100 text-sky-800 text-xs">
+              DeepBrain AI Human
+            </Badge>
+          )}
           <Badge variant="outline" className="gap-1.5 text-xs">
             <span
               className={`w-2 h-2 rounded-full ${getStatusColor(ws.status)}`}
@@ -421,6 +450,7 @@ export default function SessionPage() {
             controllers={avatarType === "vrm" ? vrmAvatar.controllers : undefined}
             videoRef={avatarType === "video" ? videoAvatar.videoRef : avatarType === "simli" ? simliAvatar.videoRef : undefined}
             audioRef={avatarType === "video" ? videoAvatar.audioRef : avatarType === "simli" ? simliAvatar.audioRef : undefined}
+            containerRef={avatarType === "deepbrain" ? deepbrainAvatar.containerRef : undefined}
             isLoading={avatar.isLoading}
             isInitialized={avatar.isInitialized}
             error={avatar.error}
