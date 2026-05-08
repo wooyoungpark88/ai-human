@@ -5,18 +5,18 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AvatarView } from "@/components/AvatarView";
 import { ChatPanel } from "@/components/ChatPanel";
-import { EmotionBadge } from "@/components/EmotionBadge";
 import { MicButton } from "@/components/MicButton";
 import { SessionDashboard } from "@/components/SessionDashboard";
+import { EMOTION_MAP } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useMicrophone } from "@/hooks/useMicrophone";
 import { useVRMAvatar } from "@/hooks/useVRMAvatar";
-import { useVideoAvatar } from "@/hooks/useVideoAvatar";
 import { useSimliAvatar } from "@/hooks/useSimliAvatar";
 import { useDeepBrainAvatar } from "@/hooks/useDeepBrainAvatar";
+import { useHeyGenAvatar } from "@/hooks/useHeyGenAvatar";
 import { API_URL } from "@/lib/constants";
 import type {
   ChatMessage,
@@ -57,9 +57,6 @@ export default function SessionPage() {
 
   // 모든 아바타 훅 호출 (React 훅 규칙: 조건부 호출 불가)
   const vrmAvatar = useVRMAvatar();
-  const videoAvatar = useVideoAvatar({
-    agentId: caseInfo?.bp_agent_id || undefined,
-  });
   const simliAvatar = useSimliAvatar({
     faceId: caseInfo?.simli_face_id || undefined,
   });
@@ -68,19 +65,23 @@ export default function SessionPage() {
     // 비워두면 generateToken 응답의 defaultAI.ai_name 사용.
     aiName: caseInfo?.deepbrain_avatar_id || undefined,
   });
+  const heygenAvatar = useHeyGenAvatar({
+    avatarName: caseInfo?.heygen_avatar_id || undefined,
+    language: "ko",
+  });
 
   // 활성 아바타 선택
   const avatar = useMemo(() => {
-    if (avatarType === "video") {
+    if (avatarType === "heygen") {
       return {
-        isInitialized: videoAvatar.isInitialized,
-        isLoading: videoAvatar.isLoading,
-        error: videoAvatar.error,
-        initialize: videoAvatar.initialize,
-        sendBase64Audio: videoAvatar.sendBase64Audio,
-        setEmotion: videoAvatar.setEmotion,
-        setConversationPhase: videoAvatar.setConversationPhase,
-        close: videoAvatar.close,
+        isInitialized: heygenAvatar.isInitialized,
+        isLoading: heygenAvatar.isLoading,
+        error: heygenAvatar.error,
+        initialize: heygenAvatar.initialize,
+        sendBase64Audio: heygenAvatar.sendBase64Audio,
+        setEmotion: heygenAvatar.setEmotion,
+        setConversationPhase: heygenAvatar.setConversationPhase,
+        close: heygenAvatar.close,
       };
     }
     if (avatarType === "simli") {
@@ -117,7 +118,7 @@ export default function SessionPage() {
       setConversationPhase: vrmAvatar.setConversationPhase,
       close: vrmAvatar.close,
     };
-  }, [avatarType, vrmAvatar, videoAvatar, simliAvatar, deepbrainAvatar]);
+  }, [avatarType, vrmAvatar, simliAvatar, deepbrainAvatar, heygenAvatar]);
 
   // 케이스 정보 로드
   useEffect(() => {
@@ -162,9 +163,11 @@ export default function SessionPage() {
                 timestamp: new Date(),
               },
             ]);
-            // DeepBrain은 자체 TTS — 텍스트를 SDK에 직접 전달
+            // DeepBrain/HeyGen은 자체 TTS — 텍스트를 SDK에 직접 전달
             if (avatarType === "deepbrain") {
               deepbrainAvatar.speakText(message.text);
+            } else if (avatarType === "heygen") {
+              heygenAvatar.speakText(message.text);
             }
           }
           setIsThinking(false);
@@ -224,7 +227,7 @@ export default function SessionPage() {
           break;
       }
     },
-    [avatar, avatarType, deepbrainAvatar]
+    [avatar, avatarType, deepbrainAvatar, heygenAvatar]
   );
 
   // WebSocket 훅
@@ -265,14 +268,9 @@ export default function SessionPage() {
 
   // 세션 시작
   const handleStartSession = useCallback(async () => {
-    if (avatarType === "video") {
-      // BP Managed Agent: STT만 사용 (LLM/TTS는 BP 내장 파이프라인)
-      ws.connect(caseId, "stt_only");
-    } else {
-      // DeepBrain은 자체 TTS지만 backend에 별도 모드가 없어 full로 연결 후
-      // sendBase64Audio를 no-op으로 두고 speakText(text)만 사용함
-      ws.connect(caseId);
-    }
+    // DeepBrain/HeyGen은 자체 TTS지만 backend에 별도 모드가 없어 full로 연결 후
+    // sendBase64Audio를 no-op으로 두고 speakText(text)만 사용함
+    ws.connect(caseId);
     await avatar.initialize();
     setIsThinking(false);
     setIsSpeaking(false);
@@ -412,8 +410,8 @@ export default function SessionPage() {
           >
             {caseInfo ? `${caseInfo.name} · ${caseInfo.age}세` : "상담 세션"}
           </h1>
-          {avatarType === "video" && (
-            <span className="tc-tag tc-tag-blue">Beyond Presence</span>
+          {avatarType === "heygen" && (
+            <span className="tc-tag tc-tag-cream">HeyGen Interactive</span>
           )}
           {avatarType === "simli" && (
             <span className="tc-tag tc-tag-cream">Simli</span>
@@ -429,37 +427,6 @@ export default function SessionPage() {
           </Badge>
         </div>
 
-        <div className="flex items-center gap-3">
-          <EmotionBadge
-            emotion={currentEmotion}
-            intensity={emotionIntensity}
-          />
-
-          {!isSessionActive ? (
-            <button
-              onClick={handleStartSession}
-              className="px-5 py-2 rounded-full text-[12.5px] font-semibold transition-opacity hover:opacity-90"
-              style={{
-                background: "var(--tc-accent-dark)",
-                color: "#fff",
-              }}
-            >
-              상담 시작
-            </button>
-          ) : (
-            <button
-              onClick={handleStopSession}
-              className="px-5 py-2 rounded-full text-[12.5px] font-medium transition-colors"
-              style={{
-                background: "var(--tc-card-white)",
-                color: "var(--tc-text)",
-                border: "1px solid var(--tc-border-warm)",
-              }}
-            >
-              상담 종료
-            </button>
-          )}
-        </div>
       </header>
 
       {/* 메인 콘텐츠 */}
@@ -470,8 +437,20 @@ export default function SessionPage() {
             avatarType={avatarType}
             vrm={avatarType === "vrm" ? vrmAvatar.vrmRef.current : undefined}
             controllers={avatarType === "vrm" ? vrmAvatar.controllers : undefined}
-            videoRef={avatarType === "video" ? videoAvatar.videoRef : avatarType === "simli" ? simliAvatar.videoRef : undefined}
-            audioRef={avatarType === "video" ? videoAvatar.audioRef : avatarType === "simli" ? simliAvatar.audioRef : undefined}
+            videoRef={
+              avatarType === "heygen"
+                ? heygenAvatar.videoRef
+                : avatarType === "simli"
+                  ? simliAvatar.videoRef
+                  : undefined
+            }
+            audioRef={
+              avatarType === "heygen"
+                ? heygenAvatar.audioRef
+                : avatarType === "simli"
+                  ? simliAvatar.audioRef
+                  : undefined
+            }
             containerRef={avatarType === "deepbrain" ? deepbrainAvatar.containerRef : undefined}
             isLoading={avatar.isLoading}
             isInitialized={avatar.isInitialized}
@@ -479,6 +458,107 @@ export default function SessionPage() {
             currentEmotion={currentEmotion}
             emotionIntensity={emotionIntensity}
           />
+
+          {/* 큰 컨트롤 바: 감정 표시 + 시작/종료 버튼 */}
+          <div
+            className="w-full max-w-2xl mx-auto rounded-[14px] border px-5 py-3.5 flex items-center justify-between gap-4"
+            style={{
+              background: "var(--tc-card-white)",
+              borderColor: "var(--tc-border)",
+            }}
+          >
+            {/* 내담자 감정 표시 (크게) */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <span
+                className="text-[10px] font-bold tracking-[0.16em] uppercase whitespace-nowrap"
+                style={{ color: "var(--tc-text-muted)" }}
+              >
+                내담자 감정
+              </span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className="text-[28px] leading-none transition-all"
+                  style={{
+                    opacity: isSessionActive
+                      ? 0.6 + emotionIntensity * 0.4
+                      : 0.35,
+                  }}
+                >
+                  {(EMOTION_MAP[currentEmotion] ?? EMOTION_MAP.neutral).emoji}
+                </span>
+                <div className="min-w-0">
+                  <div
+                    className="text-[15px] font-bold leading-tight"
+                    style={{
+                      fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+                      color: isSessionActive
+                        ? "var(--tc-accent-dark)"
+                        : "var(--tc-text-muted)",
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {(EMOTION_MAP[currentEmotion] ?? EMOTION_MAP.neutral).label}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <div
+                      className="w-[80px] h-1.5 rounded-full overflow-hidden"
+                      style={{ background: "var(--tc-soft-bg)" }}
+                    >
+                      <div
+                        className="h-full transition-all duration-500"
+                        style={{
+                          width: `${Math.round(emotionIntensity * 100)}%`,
+                          background: isSessionActive
+                            ? "linear-gradient(90deg, var(--tc-accent-light), var(--tc-accent))"
+                            : "var(--tc-border-warm)",
+                        }}
+                      />
+                    </div>
+                    <span
+                      className="text-[11px] tabular-nums"
+                      style={{ color: "var(--tc-text-sec)" }}
+                    >
+                      {Math.round(emotionIntensity * 100)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 시작/종료 버튼 (크게) */}
+            {!isSessionActive ? (
+              <button
+                onClick={handleStartSession}
+                disabled={avatar.isLoading}
+                className="px-7 py-3 rounded-full text-[14.5px] font-bold transition-all hover:opacity-95 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
+                style={{
+                  background: "var(--tc-accent-dark)",
+                  color: "#fff",
+                  fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                <span className="text-[16px]">▶</span>
+                <span>{avatar.isLoading ? "연결 중..." : "상담 시작"}</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleStopSession}
+                className="px-6 py-3 rounded-full text-[13.5px] font-semibold transition-colors hover:bg-[var(--tc-soft-bg)] flex items-center gap-2 whitespace-nowrap"
+                style={{
+                  background: "var(--tc-card-white)",
+                  color: "var(--tc-accent-dark)",
+                  border: "1.5px solid var(--tc-border-warm)",
+                }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: "var(--tc-red)" }}
+                />
+                상담 종료
+              </button>
+            )}
+          </div>
 
           {/* 마이크 컨트롤 */}
           <div className="flex flex-col items-center gap-2">

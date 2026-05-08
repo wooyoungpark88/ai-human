@@ -66,7 +66,7 @@ class ClientProfile(BaseModel):
     voice_id: Optional[str] = None
 
 
-AvatarType = Literal["vrm", "video", "simli", "flashhead", "deepbrain"]
+AvatarType = Literal["vrm", "simli", "flashhead", "deepbrain", "heygen"]
 
 
 class CaseProfile(BaseModel):
@@ -96,6 +96,8 @@ class CaseProfile(BaseModel):
     flashhead_model_id: Optional[str] = None
     # DeepBrain AI Human Web SDK — 캐릭터 식별자 (aihuman.aistudios.com)
     deepbrain_avatar_id: Optional[str] = None
+    # HeyGen Interactive Avatar Streaming — avatar ID (e.g. "June_HR_public")
+    heygen_avatar_id: Optional[str] = None
     # 외부 데모 페이지 URL — 설정 시 카드 클릭이 새 탭으로 이동 (예: OAC 사이드카 자체 UI)
     external_url: Optional[str] = None
 

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
+  API_URL,
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
 } from "@/lib/constants";
@@ -27,7 +29,7 @@ const DIFFICULTY_TAG_CLASS: Record<string, string> = {
 
 const AVATAR_TAG_CONFIG: Record<string, { label: string; cls: string }> = {
   vrm: { label: "VRM", cls: "tc-tag-green" },
-  video: { label: "Beyond Presence", cls: "tc-tag-blue" },
+  heygen: { label: "HeyGen Interactive", cls: "tc-tag-cream" },
   simli: { label: "Simli", cls: "tc-tag-cream" },
   flashhead: { label: "OpenAvatarChat", cls: "tc-tag-green" },
   deepbrain: { label: "DeepBrain AI Human", cls: "tc-tag-blue" },
@@ -41,6 +43,32 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
 
   const avatarType = caseInfo.avatar_type || "vrm";
   const avatar = AVATAR_TAG_CONFIG[avatarType];
+
+  // OAC(FlashHead) 사이드카 도달 가능성 — 마운트 시 1회 체크
+  const [oacReachable, setOacReachable] = useState<
+    null | { reachable: boolean; reason?: string }
+  >(null);
+  const isOac = avatarType === "flashhead";
+
+  useEffect(() => {
+    if (!isOac) return;
+    let aborted = false;
+    fetch(`${API_URL}/api/sidecar/oac/health`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (aborted) return;
+        setOacReachable({
+          reachable: !!data.reachable,
+          reason: data.reason,
+        });
+      })
+      .catch(() => {
+        if (!aborted) setOacReachable({ reachable: false, reason: "fetch_error" });
+      });
+    return () => {
+      aborted = true;
+    };
+  }, [isOac]);
 
   return (
     <article
@@ -114,6 +142,45 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
         </div>
       )}
 
+      {/* OAC 사이드카 상태 인디케이터 */}
+      {isOac && oacReachable && (
+        <div
+          className="mt-3 p-2.5 rounded-lg text-[11.5px] flex items-start gap-2"
+          style={{
+            background: oacReachable.reachable
+              ? "var(--tc-green-soft)"
+              : "var(--tc-red-soft)",
+            color: oacReachable.reachable
+              ? "var(--tc-green-deep)"
+              : "var(--tc-red)",
+            border: `1px solid ${
+              oacReachable.reachable ? "var(--tc-green)" : "var(--tc-red)"
+            }`,
+          }}
+        >
+          <span
+            className="w-2 h-2 rounded-full mt-1 flex-shrink-0"
+            style={{
+              background: oacReachable.reachable
+                ? "var(--tc-green)"
+                : "var(--tc-red)",
+            }}
+          />
+          <span className="leading-snug">
+            {oacReachable.reachable ? (
+              <>사이드카 연결 가능 ({caseInfo.external_url})</>
+            ) : (
+              <>
+                사이드카 미연결 — WSL2에서 OpenAvatarChat을 실행한 뒤 다시 시도하세요.
+                {oacReachable.reason && (
+                  <span className="opacity-70"> ({oacReachable.reason})</span>
+                )}
+              </>
+            )}
+          </span>
+        </div>
+      )}
+
       {/* CTA */}
       <div className="mt-auto pt-5">
         {caseInfo.external_url ? (
@@ -121,13 +188,24 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
             href={caseInfo.external_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full text-center py-2.5 px-4 rounded-full text-[12.5px] font-semibold transition-colors"
+            className="block w-full text-center py-2.5 px-4 rounded-full text-[12.5px] font-semibold transition-all"
             style={{
-              background: "var(--tc-accent-dark)",
+              background:
+                isOac && oacReachable && !oacReachable.reachable
+                  ? "var(--tc-text-muted)"
+                  : "var(--tc-accent-dark)",
               color: "#fff",
+              opacity:
+                isOac && oacReachable && !oacReachable.reachable ? 0.6 : 1,
+              pointerEvents:
+                isOac && oacReachable && !oacReachable.reachable
+                  ? "none"
+                  : "auto",
             }}
           >
-            데모 열기 (새 탭)
+            {isOac && oacReachable && !oacReachable.reachable
+              ? "사이드카 시작 후 재시도"
+              : "데모 열기 (새 탭)"}
           </a>
         ) : (
           <Link

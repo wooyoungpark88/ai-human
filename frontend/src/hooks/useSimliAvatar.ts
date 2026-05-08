@@ -17,7 +17,7 @@ interface UseSimliAvatarOptions {
  * 2. SimliClient로 WebRTC 연결
  * 3. PCM16 오디오를 sendAudioData()로 전송 → 립싱크 비디오 수신
  *
- * useVRMAvatar / useVideoAvatar와 동일한 인터페이스 노출.
+ * useVRMAvatar / useHeyGenAvatar와 동일한 인터페이스 노출.
  */
 export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
   const { faceId } = options;

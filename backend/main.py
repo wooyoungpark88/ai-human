@@ -8,6 +8,7 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 import jwt
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -126,10 +127,10 @@ async def list_cases():
                 "description": data.get("description", ""),
                 "session_goals": data.get("session_goals", []),
                 "avatar_type": data.get("avatar_type", "vrm"),
-                "bp_agent_id": data.get("bp_agent_id", ""),
                 "simli_face_id": data.get("simli_face_id", ""),
                 "flashhead_model_id": data.get("flashhead_model_id", ""),
                 "deepbrain_avatar_id": data.get("deepbrain_avatar_id", ""),
+                "heygen_avatar_id": data.get("heygen_avatar_id", ""),
                 "external_url": data.get("external_url", ""),
             })
     return {"cases": cases}
@@ -145,6 +146,54 @@ async def get_case_detail(case_id: str):
     data.pop("system_prompt", None)
     data.pop("hidden_issues", None)
     return data
+
+
+@app.get("/api/heygen/token")
+async def heygen_token():
+    """HeyGen Interactive Avatar용 access token 발급.
+
+    클라이언트는 짧은 수명의 access token만 받아 StreamingAvatar SDK에 사용.
+    HEYGEN_API_KEY는 서버 비밀로 보호.
+    """
+    if not settings.HEYGEN_API_KEY:
+        return {"error": "HEYGEN_API_KEY 미설정"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(
+                "https://api.heygen.com/v1/streaming.create_token",
+                headers={"x-api-key": settings.HEYGEN_API_KEY},
+            )
+            if r.status_code >= 400:
+                logger.error(f"HeyGen token 발급 실패: {r.status_code} {r.text}")
+                return {"error": f"{r.status_code}: {r.text[:200]}"}
+            data = r.json()
+            return {
+                "token": data.get("data", {}).get("token"),
+                "default_avatar": settings.HEYGEN_DEFAULT_AVATAR,
+            }
+    except Exception as e:
+        logger.error(f"HeyGen token 발급 오류: {e}")
+        return {"error": str(e)}
+
+
+@app.get("/api/sidecar/oac/health")
+async def oac_sidecar_health():
+    """OpenAvatarChat 사이드카 도달 가능성 확인.
+
+    프론트엔드 CaseCard가 OAC 케이스 표시 시 폴링하여 '미연결' 안내에 사용.
+    self-signed cert 사용하므로 verify=False, 짧은 timeout.
+    """
+    url = settings.FLASHHEAD_SIDECAR_URL or "https://localhost:8282"
+    try:
+        async with httpx.AsyncClient(verify=False, timeout=2.0) as client:
+            r = await client.get(url, follow_redirects=False)
+            return {"reachable": True, "status": r.status_code, "url": url}
+    except httpx.ConnectError:
+        return {"reachable": False, "reason": "connection_refused", "url": url}
+    except httpx.TimeoutException:
+        return {"reachable": False, "reason": "timeout", "url": url}
+    except Exception as e:
+        return {"reachable": False, "reason": str(e)[:80], "url": url}
 
 
 @app.get("/api/deepbrain/jwt")

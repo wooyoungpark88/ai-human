@@ -13,9 +13,8 @@ interface AvatarViewProps {
   // VRM mode props
   vrm?: VRM | null;
   controllers?: VRMAvatarControllers;
-  // Video mode props (Beyond Presence / Simli 공용)
+  // 비디오 모드 (HeyGen / Simli / FlashHead 공용)
   videoRef?: React.RefObject<HTMLVideoElement | null>;
-  // Beyond Presence / Simli 공용 — 오디오 엘리먼트
   audioRef?: React.RefObject<HTMLAudioElement | null>;
   // DeepBrain SDK 마운트 컨테이너
   containerRef?: React.RefObject<HTMLDivElement | null>;
@@ -65,8 +64,8 @@ export function AvatarView({
         <VRMScene vrm={vrm} controllers={controllers} isLoading={isLoading} />
       )}
 
-      {/* 비디오 아바타 (Beyond Presence) — video/audio는 initialize() 전에 DOM에 마운트 필요 */}
-      {avatarType === "video" && (
+      {/* HeyGen Interactive Avatar — video/audio는 initialize() 전에 DOM에 마운트 필요 */}
+      {avatarType === "heygen" && (
         <div className="absolute inset-0">
           <video
             ref={videoRef}
@@ -75,30 +74,29 @@ export function AvatarView({
             className="w-full h-full object-cover"
           />
           <audio ref={audioRef} autoPlay />
-          {/* 데모 모드 오버레이 (비디오 스트림 없을 때) */}
-          {isInitialized && !hasVideoStream && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95 video-demo-placeholder">
-            <div className="text-center">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <svg
-                  className="w-14 h-14 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                  />
-                </svg>
+          {isInitialized && !hasVideoStream && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95 pointer-events-none">
+              <div className="text-center">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center">
+                  <svg
+                    className="w-14 h-14 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-violet-300 text-sm font-medium">AI Avatar</p>
+                <p className="text-slate-500 text-xs mt-1">HeyGen Interactive</p>
               </div>
-              <p className="text-blue-300 text-sm font-medium">
-                AI Human Avatar
-              </p>
-              <p className="text-slate-500 text-xs mt-1">Beyond Presence</p>
             </div>
-          </div>}
+          )}
         </div>
       )}
 
@@ -213,8 +211,8 @@ export function AvatarView({
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
             <p className="text-white text-sm">
-              {avatarType === "video"
-                ? "Beyond Presence 연결 중..."
+              {avatarType === "heygen"
+                ? "HeyGen 연결 중..."
                 : avatarType === "simli"
                   ? "Simli 연결 중..."
                   : avatarType === "flashhead"
