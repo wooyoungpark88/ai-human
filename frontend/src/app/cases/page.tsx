@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { CaseCard } from "@/components/CaseCard";
-import { Badge } from "@/components/ui/badge";
 import { API_URL, CATEGORY_LABELS } from "@/lib/constants";
 import type { CaseInfo } from "@/lib/types";
 
@@ -46,55 +45,121 @@ export default function CasesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ background: "var(--tc-bg)" }}>
       <Navigation />
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-2">내담자 케이스</h2>
-          <p className="text-muted-foreground">
-            연습하고 싶은 상담 케이스를 선택하세요.
+      <main className="max-w-6xl mx-auto px-9 py-8">
+        {/* 페이지 헤더 */}
+        <div className="mb-7">
+          <div
+            className="text-[11.5px] flex gap-1.5 mb-1.5"
+            style={{ color: "var(--tc-text-sec)" }}
+          >
+            <span>훈련</span>
+            <span style={{ color: "var(--tc-text-muted)" }}>›</span>
+            <span>케이스 탐색</span>
+          </div>
+          <h1 className="tc-page-h">내담자 케이스</h1>
+          <p
+            className="text-[13px] mt-1.5 max-w-[780px]"
+            style={{ color: "var(--tc-text-sec)" }}
+          >
+            연습하고 싶은 상담 케이스를 골라 시작하세요. 각 내담자는 고유한 호소 문제와
+            저항도를 가지고 있어, 다양한 상담 상황을 시뮬레이션할 수 있습니다.
           </p>
         </div>
 
         {/* 필터 */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          {/* 카테고리 필터 */}
-          <div className="flex flex-wrap gap-1.5">
-            {ALL_CATEGORIES.map((cat) => (
-              <Badge
-                key={cat}
-                variant={selectedCategory === cat ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setSelectedCategory(cat)}
-              >
-                {cat === "all" ? "전체" : (CATEGORY_LABELS[cat] || cat)}
-              </Badge>
-            ))}
+        <div
+          className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-[14px] border"
+          style={{
+            background: "var(--tc-card-white)",
+            borderColor: "var(--tc-border)",
+          }}
+        >
+          {/* 카테고리 */}
+          <div className="flex items-center gap-2">
+            <span
+              className="text-[10px] font-bold tracking-[0.16em] uppercase"
+              style={{ color: "var(--tc-text-muted)" }}
+            >
+              카테고리
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_CATEGORIES.map((cat) => {
+                const active = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className="px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors"
+                    style={{
+                      background: active
+                        ? "var(--tc-accent-dark)"
+                        : "var(--tc-soft-bg)",
+                      color: active ? "#fff" : "var(--tc-text-sec)",
+                      border: `1px solid ${
+                        active ? "var(--tc-accent-dark)" : "var(--tc-border)"
+                      }`,
+                    }}
+                  >
+                    {cat === "all" ? "전체" : CATEGORY_LABELS[cat] || cat}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* 난이도 필터 */}
-          <div className="flex flex-wrap gap-1.5 border-l pl-4">
-            {ALL_DIFFICULTIES.map((diff) => (
-              <Badge
-                key={diff}
-                variant={selectedDifficulty === diff ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setSelectedDifficulty(diff)}
-              >
-                {DIFFICULTY_LABEL_MAP[diff]}
-              </Badge>
-            ))}
+          {/* 난이도 */}
+          <div
+            className="flex items-center gap-2 pl-3 ml-1 border-l"
+            style={{ borderColor: "var(--tc-border)" }}
+          >
+            <span
+              className="text-[10px] font-bold tracking-[0.16em] uppercase"
+              style={{ color: "var(--tc-text-muted)" }}
+            >
+              난이도
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_DIFFICULTIES.map((diff) => {
+                const active = selectedDifficulty === diff;
+                return (
+                  <button
+                    key={diff}
+                    onClick={() => setSelectedDifficulty(diff)}
+                    className="px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors"
+                    style={{
+                      background: active
+                        ? "var(--tc-accent-dark)"
+                        : "var(--tc-soft-bg)",
+                      color: active ? "#fff" : "var(--tc-text-sec)",
+                      border: `1px solid ${
+                        active ? "var(--tc-accent-dark)" : "var(--tc-border)"
+                      }`,
+                    }}
+                  >
+                    {DIFFICULTY_LABEL_MAP[diff]}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
         {/* 케이스 그리드 */}
         {loading ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div
+            className="text-center py-16 text-[13px]"
+            style={{ color: "var(--tc-text-sec)" }}
+          >
             케이스 로딩 중...
           </div>
         ) : filteredCases.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div
+            className="text-center py-16 text-[13px]"
+            style={{ color: "var(--tc-text-sec)" }}
+          >
             조건에 맞는 케이스가 없습니다.
           </div>
         ) : (

@@ -7,6 +7,7 @@ import { AvatarView } from "@/components/AvatarView";
 import { ChatPanel } from "@/components/ChatPanel";
 import { EmotionBadge } from "@/components/EmotionBadge";
 import { MicButton } from "@/components/MicButton";
+import { SessionDashboard } from "@/components/SessionDashboard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ export default function SessionPage() {
   const [sttAvailable, setSttAvailable] = useState(true);
   const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [sessionStartedAt, setSessionStartedAt] = useState<Date | null>(null);
 
   // Refs
   const messageIdRef = useRef(0);
@@ -277,6 +279,7 @@ export default function SessionPage() {
     conversationPhaseRef.current = "idle";
     avatar.setConversationPhase("idle");
     setIsSessionActive(true);
+    setSessionStartedAt(new Date());
   }, [ws, avatar, caseId, avatarType]);
 
   // 세션 종료 + 피드백 생성
@@ -382,33 +385,41 @@ export default function SessionPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen" style={{ background: "var(--tc-bg)" }}>
       {/* 헤더 */}
-      <header className="border-b px-6 py-3 flex items-center justify-between">
+      <header
+        className="px-6 py-3 flex items-center justify-between border-b"
+        style={{
+          background: "var(--tc-card-white)",
+          borderColor: "var(--tc-border)",
+        }}
+      >
         <div className="flex items-center gap-3">
           <Link
             href="/cases"
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="text-[12px] hover:underline"
+            style={{ color: "var(--tc-text-sec)" }}
           >
             &larr; 케이스 목록
           </Link>
-          <h1 className="text-lg font-bold">
-            {caseInfo ? `${caseInfo.name} (${caseInfo.age}세)` : "상담 세션"}
+          <h1
+            className="text-[18px] font-bold"
+            style={{
+              fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+              color: "var(--tc-accent-dark)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {caseInfo ? `${caseInfo.name} · ${caseInfo.age}세` : "상담 세션"}
           </h1>
           {avatarType === "video" && (
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
-              Beyond Presence
-            </Badge>
+            <span className="tc-tag tc-tag-blue">Beyond Presence</span>
           )}
           {avatarType === "simli" && (
-            <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs">
-              Simli
-            </Badge>
+            <span className="tc-tag tc-tag-cream">Simli</span>
           )}
           {avatarType === "deepbrain" && (
-            <Badge variant="secondary" className="bg-sky-100 text-sky-800 text-xs">
-              DeepBrain AI Human
-            </Badge>
+            <span className="tc-tag tc-tag-blue">DeepBrain AI Human</span>
           )}
           <Badge variant="outline" className="gap-1.5 text-xs">
             <span
@@ -425,25 +436,36 @@ export default function SessionPage() {
           />
 
           {!isSessionActive ? (
-            <Button onClick={handleStartSession} size="sm">
+            <button
+              onClick={handleStartSession}
+              className="px-5 py-2 rounded-full text-[12.5px] font-semibold transition-opacity hover:opacity-90"
+              style={{
+                background: "var(--tc-accent-dark)",
+                color: "#fff",
+              }}
+            >
               상담 시작
-            </Button>
+            </button>
           ) : (
-            <Button
+            <button
               onClick={handleStopSession}
-              variant="outline"
-              size="sm"
+              className="px-5 py-2 rounded-full text-[12.5px] font-medium transition-colors"
+              style={{
+                background: "var(--tc-card-white)",
+                color: "var(--tc-text)",
+                border: "1px solid var(--tc-border-warm)",
+              }}
             >
               상담 종료
-            </Button>
+            </button>
           )}
         </div>
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex flex-col lg:flex-row gap-4 p-4 h-[calc(100vh-57px)]">
-        {/* 왼쪽: 아바타 + 마이크 */}
-        <div className="flex-1 flex flex-col items-center gap-4">
+      <div className="flex flex-col lg:flex-row gap-4 p-4 lg:h-[calc(100vh-57px)]">
+        {/* 왼쪽: 아바타 + 마이크 + 대시보드 */}
+        <div className="flex-1 flex flex-col items-center gap-4 lg:overflow-y-auto pr-1">
           <AvatarView
             avatarType={avatarType}
             vrm={avatarType === "vrm" ? vrmAvatar.vrmRef.current : undefined}
@@ -511,6 +533,16 @@ export default function SessionPage() {
               </Button>
             </div>
           )}
+
+          {/* 회기 목표 + 수행 현황 대시보드 */}
+          <div className="w-full max-w-2xl mx-auto pt-2">
+            <SessionDashboard
+              sessionGoals={caseInfo?.session_goals ?? []}
+              messages={messages}
+              sessionStartedAt={sessionStartedAt}
+              isSessionActive={isSessionActive}
+            />
+          </div>
         </div>
 
         {/* 오른쪽: 채팅 패널 */}

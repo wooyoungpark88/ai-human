@@ -1,60 +1,65 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 
 export function Navigation() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [userName, setUserName] = useState("");
-
-  useEffect(() => {
-    const session = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("session="))
-      ?.split("=")[1];
-    if (session) {
-      try { setUserName(atob(session)); } catch { /* ignore */ }
-    }
-  }, []);
-
-  const handleLogout = useCallback(() => {
-    document.cookie = "session=; path=/; max-age=0";
-    window.location.href = "/login";
-  }, []);
-
-  const isActive = (path: string) =>
-    pathname === path || pathname.startsWith(path + "/");
-
   return (
-    <header className="border-b px-6 py-3 flex items-center justify-between bg-background">
-      <div className="flex items-center gap-6">
-        <Link href="/cases" className="text-lg font-bold">
-          AI 상담 훈련
-        </Link>
-        <nav className="flex items-center gap-1">
-          <Link
-            href="/cases"
-            className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-              isActive("/cases")
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            케이스 탐색
-          </Link>
-        </nav>
-      </div>
+    <header
+      className="sticky top-0 z-50 h-[54px] flex items-center px-6 gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.14)]"
+      style={{ background: "var(--tc-accent-dark)", color: "#F5E8D6" }}
+    >
+      <Link href="/cases" className="flex items-center gap-2.5 no-underline text-inherit">
+        <span
+          className="w-7 h-7 rounded-md flex items-center justify-center text-[13px] font-black"
+          style={{
+            background: "var(--tc-peach)",
+            color: "var(--tc-accent-dark)",
+            fontFamily: "'Archivo Black', sans-serif",
+          }}
+        >
+          T
+        </span>
+        <span
+          className="text-[16px] font-black tracking-tight text-white"
+          style={{ fontFamily: "'Archivo Black','Pretendard Variable',sans-serif" }}
+        >
+          Terraco
+        </span>
+        <span className="text-[12px] opacity-70 ml-1">AI 상담 훈련</span>
+      </Link>
 
-      <div className="flex items-center gap-3">
-        {userName && (
-          <span className="text-sm text-muted-foreground">{userName}</span>
-        )}
-        <Button onClick={handleLogout} variant="ghost" size="sm">
-          로그아웃
-        </Button>
+      <nav className="ml-6 flex items-center gap-1">
+        <Link
+          href="/cases"
+          className="px-3 py-1.5 rounded-md text-[12.5px] font-medium transition-colors hover:bg-white/10"
+          style={{ color: "#F5E8D6" }}
+        >
+          케이스 탐색
+        </Link>
+      </nav>
+
+      <div className="ml-auto flex items-center gap-2">
+        <div
+          className="flex items-center gap-2 pl-1.5 pr-2.5 py-[5px] rounded-full cursor-default"
+          style={{ background: "rgba(255,255,255,0.06)" }}
+        >
+          <span
+            className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-[11px] font-bold"
+            style={{
+              background: "var(--tc-peach)",
+              color: "var(--tc-accent-dark)",
+              fontFamily: "'Gowun Batang',serif",
+            }}
+          >
+            상
+          </span>
+          <div className="leading-tight">
+            <div className="text-[12px] font-semibold text-white">상담사</div>
+            <div className="text-[10px]" style={{ color: "rgba(245,232,214,0.65)" }}>
+              훈련 모드
+            </div>
+          </div>
+        </div>
       </div>
     </header>
   );

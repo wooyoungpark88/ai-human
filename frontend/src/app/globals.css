@@ -7,7 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-pretendard);
+  --font-serif: var(--font-noto-serif);
+  --font-display: var(--font-gowun);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -47,82 +49,129 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* ============ Terraco 디자인 토큰 ============ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  /* 배경/카드 */
+  --tc-bg: #EEE6D7;
+  --tc-bg-2: #E7DBC3;
+  --tc-card-white: #FFFFFF;
+  --tc-soft-bg: #FAF3E7;
+  --tc-cream: #FFF6EA;
+  --tc-peach: #FBDCC9;
+  --tc-peach-soft: #FCEBDC;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* 메인 액센트 (테라코타) */
+  --tc-accent: #B04A2F;
+  --tc-accent-deep: #8F3A22;
+  --tc-accent-dark: #3D2817;
+  --tc-accent-light: #D4A584;
+  --tc-brown-card: #2B1D16;
+
+  /* 텍스트 */
+  --tc-text: #2C1810;
+  --tc-text-sec: #6B5D52;
+  --tc-text-muted: #A89A8B;
+
+  /* 보더 */
+  --tc-border: #EADFCF;
+  --tc-border-warm: #DCC9A8;
+
+  /* 상태색 */
+  --tc-green: #6B9E5E;
+  --tc-green-deep: #4F7A45;
+  --tc-green-soft: #E6F0E1;
+  --tc-gold: #C08A3E;
+  --tc-gold-soft: #F4E5C9;
+  --tc-blue: #4A6B8A;
+  --tc-blue-soft: #E5EDF3;
+  --tc-red: #B0473A;
+  --tc-red-soft: #F5E0DC;
+
+  /* shadcn 매핑 */
+  --radius: 0.875rem;
+  --background: var(--tc-bg);
+  --foreground: var(--tc-text);
+  --card: var(--tc-card-white);
+  --card-foreground: var(--tc-text);
+  --popover: var(--tc-card-white);
+  --popover-foreground: var(--tc-text);
+  --primary: var(--tc-accent-dark);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--tc-soft-bg);
+  --secondary-foreground: var(--tc-accent-dark);
+  --muted: var(--tc-soft-bg);
+  --muted-foreground: var(--tc-text-sec);
+  --accent: var(--tc-peach-soft);
+  --accent-foreground: var(--tc-accent-deep);
+  --destructive: var(--tc-red);
+  --border: var(--tc-border);
+  --input: var(--tc-border);
+  --ring: var(--tc-accent-light);
+  --chart-1: var(--tc-accent);
+  --chart-2: var(--tc-green);
+  --chart-3: var(--tc-gold);
+  --chart-4: var(--tc-blue);
+  --chart-5: var(--tc-accent-light);
+  --sidebar: var(--tc-card-white);
+  --sidebar-foreground: var(--tc-text);
+  --sidebar-primary: var(--tc-accent-dark);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--tc-soft-bg);
+  --sidebar-accent-foreground: var(--tc-accent-dark);
+  --sidebar-border: var(--tc-border);
+  --sidebar-ring: var(--tc-accent-light);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-pretendard), 'Pretendard Variable', 'Pretendard',
+      -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
   }
+  .font-serif,
+  h1, h2, h3.serif-h, .serif {
+    font-family: var(--font-noto-serif), 'Noto Serif KR', serif;
+    letter-spacing: -0.02em;
+  }
+  .font-display, .display {
+    font-family: var(--font-gowun), 'Gowun Batang', 'Noto Serif KR', serif;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* ============ Terraco 유틸 클래스 ============ */
+@layer utilities {
+  .tc-page-h {
+    font-family: var(--font-noto-serif), 'Noto Serif KR', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--tc-accent-dark);
+    letter-spacing: -0.02em;
+    line-height: 1.32;
+  }
+  .tc-card-t {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--tc-accent-dark);
+    letter-spacing: -0.01em;
+  }
+  .tc-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 11px;
+    font-size: 10.5px;
+    font-weight: 600;
+    background: var(--tc-soft-bg);
+    color: var(--tc-text-sec);
+  }
+  .tc-tag-green { background: var(--tc-green-soft); color: var(--tc-green-deep); }
+  .tc-tag-red   { background: var(--tc-red-soft);   color: var(--tc-red);        }
+  .tc-tag-gold  { background: var(--tc-gold-soft);  color: #7A5418;              }
+  .tc-tag-cream { background: var(--tc-peach-soft); color: var(--tc-accent-deep);}
+  .tc-tag-blue  { background: var(--tc-blue-soft);  color: var(--tc-blue);       }
+  .tc-tag-gray  { background: #EDE5D6;              color: var(--tc-text-sec);   }
 }
