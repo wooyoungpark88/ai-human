@@ -139,14 +139,19 @@ async def list_cases():
 
 
 @app.get("/api/cases/{case_id}")
-async def get_case_detail(case_id: str):
-    """케이스 상세 정보를 반환합니다 (system_prompt, hidden_issues 제외)."""
+async def get_case_detail(case_id: str, include_internal: bool = False):
+    """케이스 상세 정보를 반환합니다.
+
+    기본: 상담사 훈련 모드 — system_prompt / hidden_issues 제외 (정답 비공개)
+    include_internal=true: 페르소나 명세 검토용 — 모든 필드 포함
+    """
     data = load_json_file(CASE_PROFILES_DIR / f"{case_id}.json")
     if data is None:
         return {"error": "케이스를 찾을 수 없습니다."}
-    # system_prompt와 hidden_issues는 상담사에게 노출하지 않음
-    data.pop("system_prompt", None)
-    data.pop("hidden_issues", None)
+    if not include_internal:
+        # 훈련 중에는 정답·내부 데이터 노출 금지
+        data.pop("system_prompt", None)
+        data.pop("hidden_issues", None)
     return data
 
 

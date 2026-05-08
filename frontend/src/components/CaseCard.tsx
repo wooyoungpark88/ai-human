@@ -182,7 +182,7 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
       )}
 
       {/* CTA */}
-      <div className="mt-auto pt-5">
+      <div className="mt-auto pt-5 space-y-2">
         {caseInfo.external_url ? (
           <a
             href={caseInfo.external_url}
@@ -219,6 +219,17 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
             상담 시작
           </Link>
         )}
+        <Link
+          href={`/cases/${caseInfo.id}`}
+          className="block w-full text-center py-1.5 px-4 rounded-full text-[11.5px] font-medium transition-colors hover:bg-[var(--tc-soft-bg)]"
+          style={{
+            background: "transparent",
+            color: "var(--tc-text-sec)",
+            border: "1px solid var(--tc-border)",
+          }}
+        >
+          명세 보기
+        </Link>
       </div>
     </article>
   );
