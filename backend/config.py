@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     HEYGEN_API_KEY: str = ""
     HEYGEN_DEFAULT_AVATAR: str = "June_HR_public"  # HeyGen 기본 아바타 ID
 
+    # OpenAI — 페르소나 초상화 생성 (DALL-E 3 / gpt-image-1)
+    # 미설정 시 portrait 생성 비활성, 카드는 placeholder 표시
+    OPENAI_API_KEY: str = ""
+    PORTRAIT_MODEL: str = "dall-e-3"  # "dall-e-3" 또는 "gpt-image-1"
+
     # Server — Railway는 PORT를 주입하므로 BACKEND_PORT/PORT 둘 다 허용
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = Field(

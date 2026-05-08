@@ -74,11 +74,31 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
     <article
       className="flex flex-col h-full bg-[var(--tc-card-white)] border border-[var(--tc-border)] rounded-[14px] p-[22px] transition-all hover:border-[var(--tc-border-warm)] hover:shadow-[0_8px_24px_rgba(60,40,23,0.08)]"
     >
-      {/* 태그 영역 */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-3">
-        <span className={`tc-tag ${categoryCls}`}>{categoryLabel}</span>
-        <span className={`tc-tag ${difficultyCls}`}>{difficultyLabel}</span>
-        {avatar && <span className={`tc-tag ${avatar.cls}`}>{avatar.label}</span>}
+      {/* 초상화 + 태그 영역 */}
+      <div className="flex items-start gap-3 mb-3">
+        <div
+          className="w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+          style={{
+            background: "var(--tc-soft-bg)",
+            border: "1px solid var(--tc-border)",
+          }}
+        >
+          {caseInfo.portrait_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`${API_URL}${caseInfo.portrait_url}`}
+              alt={caseInfo.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span style={{ color: "var(--tc-text-muted)", fontSize: 22 }}>👤</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0 flex flex-wrap items-start gap-1.5 pt-0.5">
+          <span className={`tc-tag ${categoryCls}`}>{categoryLabel}</span>
+          <span className={`tc-tag ${difficultyCls}`}>{difficultyLabel}</span>
+          {avatar && <span className={`tc-tag ${avatar.cls}`}>{avatar.label}</span>}
+        </div>
       </div>
 
       {/* 이름 / 인적사항 */}

@@ -8,7 +8,7 @@ import re
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 import httpx
 import jwt
@@ -28,6 +28,8 @@ from backend.utils import load_json_file
 
 PROFILES_DIR = Path(__file__).resolve().parent / "client_profiles"
 CASE_PROFILES_DIR = Path(__file__).resolve().parent / "case_profiles"
+PORTRAITS_DIR = Path(__file__).resolve().parent / "portraits"
+PORTRAITS_DIR.mkdir(exist_ok=True)
 
 # 로깅 설정
 logging.basicConfig(
@@ -134,6 +136,7 @@ async def list_cases():
                 "deepbrain_avatar_id": data.get("deepbrain_avatar_id", ""),
                 "heygen_avatar_id": data.get("heygen_avatar_id", ""),
                 "external_url": data.get("external_url", ""),
+                "portrait_url": data.get("portrait_url", ""),
             })
     return {"cases": cases}
 
@@ -337,6 +340,124 @@ async def generate_case_prompt(request: GeneratePromptRequest):
     except Exception as e:
         logger.error(f"system_prompt AI 생성 실패: {e}")
         return {"error": str(e)}
+
+
+def _build_portrait_prompt(persona: dict) -> str:
+    """페르소나 데이터에서 DALL-E 프롬프트 자동 생성.
+
+    한국인·실사·상담 시뮬용 톤 — 자극적이거나 비현실적인 묘사 회피.
+    """
+    age = persona.get("age", 30)
+    gender_raw = persona.get("gender", "여성")
+    gender_en = "woman" if gender_raw == "여성" else "man" if gender_raw == "남성" else "person"
+    occupation = persona.get("occupation", "office worker")
+    personality = (persona.get("personality") or "").replace("\n", " ")[:200]
+    speaking_style = (persona.get("speaking_style") or "").replace("\n", " ")[:120]
+    baseline = persona.get("emotional_baseline", "neutral")
+    emotion_hint = {
+        "anxious": "subtly anxious expression, slightly tense",
+        "sad": "soft melancholic expression, tired eyes",
+        "happy": "gentle warm smile",
+        "thinking": "thoughtful look, slight downcast gaze",
+        "empathetic": "compassionate, soft eyes",
+        "angry": "controlled tension in jaw, neutral mouth",
+        "neutral": "calm neutral expression",
+    }.get(baseline, "calm neutral expression")
+
+    return (
+        f"Photographic realistic portrait of a Korean {gender_en}, age {age}, "
+        f"working as a {occupation}. {emotion_hint}. "
+        f"Personality cue: {personality}. Speaking style cue: {speaking_style}. "
+        f"Casual contemporary clothing, soft natural lighting, neutral indoor background, "
+        f"head and upper shoulders framing, looking gently toward camera. "
+        f"Documentary photo style, realistic skin texture, no text, no logos, no watermarks. "
+        f"Suitable for counseling training simulation — approachable but reserved."
+    )
+
+
+class GeneratePortraitRequest(PydanticBaseModel):
+    """페르소나 초상화 생성 요청"""
+    persona: dict
+    prompt_override: Optional[str] = None
+    case_id: Optional[str] = None  # 지정 시 case_id.png로 저장 (덮어쓰기)
+
+
+@app.post("/api/cases/generate-portrait")
+async def generate_portrait(request: GeneratePortraitRequest):
+    """OpenAI 이미지 모델로 페르소나 초상화 생성 → portraits 디렉토리에 저장 → URL 반환.
+
+    실시간 영상 AI 휴먼(HeyGen/Simli/DeepBrain/VRM)과는 완전히 별개의 정적 이미지.
+    카드·명세 페이지에서 인물 식별용으로 사용.
+    """
+    if not settings.OPENAI_API_KEY:
+        return {"error": "OPENAI_API_KEY 미설정 — backend .env에 추가 필요"}
+
+    prompt = request.prompt_override or _build_portrait_prompt(request.persona)
+    # 파일명: case_id 우선, 없으면 timestamp 기반 임시
+    case_id = request.case_id or request.persona.get("id") or ""
+    if case_id and _VALID_ID.match(case_id):
+        filename = f"{case_id}.png"
+    else:
+        filename = f"tmp_{int(time.time() * 1000)}.png"
+
+    try:
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            r = await client.post(
+                "https://api.openai.com/v1/images/generations",
+                headers={
+                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": settings.PORTRAIT_MODEL,
+                    "prompt": prompt,
+                    "size": "1024x1024",
+                    "quality": "standard",
+                    "n": 1,
+                    "response_format": "b64_json",
+                },
+            )
+            if r.status_code >= 400:
+                logger.error(f"OpenAI image gen 실패: {r.status_code} {r.text[:300]}")
+                return {"error": f"{r.status_code}: {r.text[:200]}"}
+            data = r.json()
+            b64 = data["data"][0].get("b64_json")
+            if not b64:
+                # gpt-image-1 등 일부 모델은 url만 반환 — fallback으로 받기
+                img_url = data["data"][0].get("url")
+                if img_url:
+                    img_resp = await client.get(img_url)
+                    img_bytes = img_resp.content
+                else:
+                    return {"error": "OpenAI 응답에 이미지 데이터 없음"}
+            else:
+                img_bytes = base64.b64decode(b64)
+
+        target = PORTRAITS_DIR / filename
+        target.write_bytes(img_bytes)
+        url_path = f"/api/portraits/{filename}"
+        logger.info(f"초상화 생성됨: {filename} ({len(img_bytes)} bytes)")
+        return {
+            "url": url_path,
+            "absolute_url": None,  # 프론트가 API_URL과 결합
+            "filename": filename,
+            "prompt_used": prompt,
+        }
+    except Exception as e:
+        logger.error(f"초상화 생성 오류: {e}")
+        return {"error": str(e)}
+
+
+@app.get("/api/portraits/{filename}")
+async def serve_portrait(filename: str):
+    """저장된 초상화 이미지 서빙 — path traversal 방지 위해 파일명 정규식 검증."""
+    from fastapi.responses import FileResponse, JSONResponse
+    if not re.match(r"^[a-zA-Z0-9_\-]{1,60}\.(png|jpg|jpeg|webp)$", filename):
+        return JSONResponse({"error": "잘못된 파일명"}, status_code=400)
+    target = PORTRAITS_DIR / filename
+    if not target.exists():
+        return JSONResponse({"error": "파일 없음"}, status_code=404)
+    return FileResponse(target, media_type="image/png")
 
 
 _VALID_ID = re.compile(r"^[a-z0-9_]{2,40}$")

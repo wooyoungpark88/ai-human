@@ -76,6 +76,7 @@ export interface CaseInfo {
   deepbrain_avatar_id?: string;
   heygen_avatar_id?: string;
   external_url?: string;
+  portrait_url?: string;
 }
 
 /** 페르소나 빌더 — v2 신규 필드 */
@@ -175,7 +176,10 @@ export interface PersonaDraft {
   safety_protocols?: SafetyProtocols;
   cultural_context?: string[];
   schema_version?: number;
-  // 아바타
+  // 정적 초상화 (AI 생성 또는 업로드)
+  portrait_url?: string;
+  portrait_prompt?: string;
+  // 영상 아바타 매핑
   avatar_type?: AvatarType;
   simli_face_id?: string;
   flashhead_model_id?: string;

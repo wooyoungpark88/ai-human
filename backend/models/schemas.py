@@ -171,7 +171,11 @@ class CaseProfile(BaseModel):
     cultural_context: list[str] = []
     schema_version: int = 1               # 1=legacy, 2=신 빌더 생성
 
-    # === 아바타 매핑 ===
+    # === 정적 초상화 (AI 생성 또는 업로드한 이미지) — 영상 아바타와 별개 ===
+    portrait_url: Optional[str] = None
+    portrait_prompt: Optional[str] = None  # 마지막 생성 시 사용한 프롬프트 (재생성 참고)
+
+    # === 아바타 매핑 (실시간 영상 AI 휴먼) ===
     avatar_type: Optional[AvatarType] = None
     flashhead_model_id: Optional[str] = None
     deepbrain_avatar_id: Optional[str] = None

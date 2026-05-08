@@ -96,6 +96,34 @@ export default function NewPersonaPage() {
       [parent]: { ...(p[parent] as object), ...patch } as PersonaDraft[P],
     }));
 
+  const generatePortrait = async (promptOverride?: string) => {
+    setBusy("portrait");
+    setToast(null);
+    try {
+      const res = await fetch(`${API_URL}/api/cases/generate-portrait`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          persona,
+          prompt_override: promptOverride,
+          case_id: persona.id || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setToast({ type: "err", msg: data.error });
+      } else if (data.url) {
+        update("portrait_url", data.url);
+        update("portrait_prompt", data.prompt_used);
+        setToast({ type: "ok", msg: "초상화 생성 완료" });
+      }
+    } catch (e) {
+      setToast({ type: "err", msg: e instanceof Error ? e.message : "생성 실패" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const generatePrompt = async (mode: "ai" | "template") => {
     setBusy(`prompt-${mode}`);
     setToast(null);
@@ -204,7 +232,12 @@ export default function NewPersonaPage() {
 
             {/* 단계별 폼 */}
             {STEPS[step].key === "basic" && (
-              <SectionBasic persona={persona} update={update} />
+              <SectionBasic
+                persona={persona}
+                update={update}
+                onGeneratePortrait={generatePortrait}
+                busy={busy}
+              />
             )}
             {STEPS[step].key === "clinical" && (
               <SectionClinical persona={persona} updateNested={updateNested} />
@@ -297,10 +330,15 @@ export default function NewPersonaPage() {
 function SectionBasic({
   persona,
   update,
+  onGeneratePortrait,
+  busy,
 }: {
   persona: PersonaDraft;
   update: <K extends keyof PersonaDraft>(k: K, v: PersonaDraft[K]) => void;
+  onGeneratePortrait: (prompt?: string) => void;
+  busy: string | null;
 }) {
+  const [editPrompt, setEditPrompt] = useState(false);
   return (
     <div className="space-y-4">
       <H2>기본 정보</H2>
@@ -366,6 +404,103 @@ function SectionBasic({
           placeholder="카드에 노출되는 짧은 설명"
         />
       </Field>
+
+      {/* === 초상화 생성 (정적 사진) === */}
+      <div className="pt-4 mt-4 border-t" style={{ borderColor: "var(--tc-border)" }}>
+        <H2>인물 사진 (정적 초상화)</H2>
+        <p
+          className="text-[11.5px] mt-1 mb-3"
+          style={{ color: "var(--tc-text-muted)" }}
+        >
+          카드·명세에 표시되는 정적 이미지입니다. 실시간 영상 AI 휴먼(HeyGen/Simli/DeepBrain)과는 별개로
+          OpenAI DALL-E 3가 페르소나 정보를 바탕으로 한국인 실사 톤의 인물 사진을 생성합니다.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-4 items-start">
+          {/* 미리보기 */}
+          <div
+            className="aspect-square w-full rounded-[12px] overflow-hidden flex items-center justify-center"
+            style={{
+              background: "var(--tc-soft-bg)",
+              border: "1.5px dashed var(--tc-border-warm)",
+            }}
+          >
+            {persona.portrait_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`${API_URL}${persona.portrait_url}`}
+                alt={persona.name || "초상화"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-center px-3" style={{ color: "var(--tc-text-muted)" }}>
+                <div className="text-[34px] leading-none mb-1.5">🎨</div>
+                <p className="text-[11px]">초상화 미생성</p>
+              </div>
+            )}
+          </div>
+
+          {/* 컨트롤 */}
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={() => onGeneratePortrait()}
+              disabled={busy === "portrait"}
+              className="w-full px-4 py-2.5 rounded-full text-[12.5px] font-bold disabled:opacity-50 transition-opacity hover:opacity-95"
+              style={{ background: "var(--tc-accent-dark)", color: "#fff" }}
+            >
+              {busy === "portrait"
+                ? "DALL-E 생성 중... (10~30초)"
+                : persona.portrait_url
+                  ? "✦ 다시 생성"
+                  : "✦ DALL-E로 초상화 생성"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditPrompt((s) => !s)}
+              className="w-full px-3 py-1.5 rounded-full text-[11.5px] font-medium"
+              style={{
+                background: "var(--tc-soft-bg)",
+                color: "var(--tc-text)",
+                border: "1px solid var(--tc-border)",
+              }}
+            >
+              {editPrompt ? "▾ 프롬프트 닫기" : "▸ 생성 프롬프트 편집"}
+            </button>
+            {editPrompt && (
+              <div className="space-y-2">
+                <TextArea
+                  rows={5}
+                  mono
+                  value={persona.portrait_prompt || ""}
+                  onChange={(v) => update("portrait_prompt", v)}
+                  placeholder="비워두면 페르소나 데이터로 자동 생성됩니다. 영문 prompt 권장."
+                />
+                <button
+                  type="button"
+                  onClick={() => onGeneratePortrait(persona.portrait_prompt || undefined)}
+                  disabled={busy === "portrait"}
+                  className="px-3 py-1.5 rounded-full text-[11.5px] font-semibold disabled:opacity-50"
+                  style={{
+                    background: "var(--tc-card-white)",
+                    color: "var(--tc-accent-dark)",
+                    border: "1.5px solid var(--tc-border-warm)",
+                  }}
+                >
+                  이 프롬프트로 재생성
+                </button>
+              </div>
+            )}
+            {persona.portrait_url && !editPrompt && persona.portrait_prompt && (
+              <details className="text-[11px]" style={{ color: "var(--tc-text-muted)" }}>
+                <summary className="cursor-pointer">사용된 프롬프트 보기</summary>
+                <p className="mt-1.5 px-2 py-1.5 rounded" style={{ background: "var(--tc-soft-bg)" }}>
+                  {persona.portrait_prompt}
+                </p>
+              </details>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -946,6 +1081,19 @@ function PreviewPane({ persona }: { persona: PersonaDraft }) {
       <h3 className="text-[10px] font-bold tracking-[0.16em] uppercase mb-3" style={{ color: "var(--tc-text-muted)" }}>
         실시간 미리보기
       </h3>
+      {persona.portrait_url && (
+        <div
+          className="w-full aspect-[4/3] rounded-[10px] overflow-hidden mb-3"
+          style={{ background: "var(--tc-soft-bg)" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`${API_URL}${persona.portrait_url}`}
+            alt={persona.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
       <div className="flex flex-wrap gap-1 mb-2">
         <span className="tc-tag tc-tag-cream">{CATEGORY_LABELS[persona.category] || persona.category}</span>
         <span className="tc-tag tc-tag-gold">{persona.difficulty}</span>

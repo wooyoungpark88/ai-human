@@ -17,6 +17,42 @@ export default function CaseSpecPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [portraitBusy, setPortraitBusy] = useState(false);
+  const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+
+  const regeneratePortrait = async () => {
+    if (!data) return;
+    setPortraitBusy(true);
+    setToast(null);
+    try {
+      const r = await fetch(`${API_URL}/api/cases/generate-portrait`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ persona: data, case_id: caseId }),
+      });
+      const j = await r.json();
+      if (j.error) {
+        setToast({ type: "err", msg: j.error });
+      } else if (j.url) {
+        // 케이스 JSON에도 portrait_url 갱신
+        await fetch(`${API_URL}/api/cases/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            profile: { ...data, portrait_url: j.url, portrait_prompt: j.prompt_used },
+            overwrite: true,
+          }),
+        });
+        // cache-buster
+        setData({ ...data, portrait_url: `${j.url}?t=${Date.now()}`, portrait_prompt: j.prompt_used });
+        setToast({ type: "ok", msg: "초상화 재생성 + 저장 완료" });
+      }
+    } catch (e) {
+      setToast({ type: "err", msg: e instanceof Error ? e.message : "실패" });
+    } finally {
+      setPortraitBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!caseId) return;
@@ -67,7 +103,33 @@ export default function CaseSpecPage() {
             <span>{data.name}</span>
           </div>
           <div className="flex items-end justify-between gap-4 flex-wrap">
-            <div className="min-w-0">
+            <div className="min-w-0 flex items-start gap-4">
+              {/* 초상화 (있을 때만) */}
+              {data.portrait_url ? (
+                <div
+                  className="w-[88px] h-[88px] rounded-[14px] overflow-hidden flex-shrink-0"
+                  style={{ background: "var(--tc-soft-bg)", border: "1.5px solid var(--tc-border-warm)" }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`${API_URL}${data.portrait_url}`}
+                    alt={data.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="w-[88px] h-[88px] rounded-[14px] flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: "var(--tc-soft-bg)",
+                    border: "1.5px dashed var(--tc-border-warm)",
+                    color: "var(--tc-text-muted)",
+                  }}
+                >
+                  <span style={{ fontSize: 32 }}>👤</span>
+                </div>
+              )}
+              <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5 mb-2">
                 <span className="tc-tag tc-tag-cream">
                   {CATEGORY_LABELS[data.category] || data.category}
@@ -97,8 +159,21 @@ export default function CaseSpecPage() {
               <p className="text-[13px] mt-1" style={{ color: "var(--tc-text-sec)" }}>
                 {data.occupation}
               </p>
+              </div>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 flex-shrink-0 flex-wrap">
+              <button
+                onClick={regeneratePortrait}
+                disabled={portraitBusy}
+                className="px-4 py-2 rounded-full text-[12px] font-semibold disabled:opacity-50 transition-colors"
+                style={{
+                  background: "var(--tc-card-white)",
+                  color: "var(--tc-accent-dark)",
+                  border: "1.5px solid var(--tc-border-warm)",
+                }}
+              >
+                {portraitBusy ? "생성 중..." : data.portrait_url ? "🎨 초상화 재생성" : "🎨 초상화 생성"}
+              </button>
               <Link
                 href={`/session/${caseId}`}
                 className="px-5 py-2.5 rounded-full text-[12.5px] font-bold transition-opacity hover:opacity-90 shadow-[0_3px_10px_rgba(60,40,23,0.15)]"
@@ -109,6 +184,18 @@ export default function CaseSpecPage() {
             </div>
           </div>
         </div>
+        {toast && (
+          <div
+            onClick={() => setToast(null)}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full text-[12.5px] font-semibold shadow-lg z-50 cursor-pointer"
+            style={{
+              background: toast.type === "ok" ? "var(--tc-green-deep)" : "var(--tc-red)",
+              color: "#fff",
+            }}
+          >
+            {toast.msg}
+          </div>
+        )}
 
         {/* 본문 */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
