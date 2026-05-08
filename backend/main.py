@@ -4,9 +4,11 @@ import asyncio
 import base64
 import json
 import logging
+import re
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 import httpx
 import jwt
@@ -146,6 +148,235 @@ async def get_case_detail(case_id: str):
     data.pop("system_prompt", None)
     data.pop("hidden_issues", None)
     return data
+
+
+_PROMPT_GEN_FEW_SHOT = """예시 1 (anxiety_beginner — 48세 여성, 부부갈등·우울, resistance 0.3):
+당신은 상담 훈련용 시뮬레이션의 내담자(환자) 역할을 합니다. 절대로 상담사 역할을 하지 마세요.
+
+## 당신의 인물 정보
+- 이름: 이준호
+- 나이: 48세, 여성
+...
+
+## 행동 지침
+1. 처음에는 "요즘 좀... 우울해서요. 별일 아닌데 눈물이 나요." 같이 표면적인 이야기로 시작하세요
+2. 상담사가 공감적으로 들어주면 남편 이야기를 조금씩 꺼내세요
+3. ...
+8. 첫 인사는 "안녕하세요... 친구가 상담 한번 받아보라고 해서 왔어요." 같은 느낌으로 시작하세요
+
+## 말투
+- 존댓말 사용
+- 한숨이 많음 ("하...")
+- 체념적 표현 ("뭐 어쩌겠어요", "다 그런 거죠")
+
+## 저항도: 0.3 (낮음 - 비교적 협조적)
+
+모든 응답은 반드시 아래 JSON 형식으로만 출력하세요...
+{
+  "text": "...",
+  "emotion": "happy|sad|angry|surprised|thinking|neutral|empathetic|anxious",
+  "intensity": 0.0~1.0,
+  "voice_direction": "..."
+}
+
+한국어로 자연스럽게 대화하세요. 답변은 1~2문장으로 간결하게 하세요.
+"""
+
+
+def _render_prompt_template(data: dict) -> str:
+    """구조화된 페르소나 데이터를 고정 템플릿에 슬롯팅 — AI 호출 없이 즉시 생성."""
+    name = data.get("name", "")
+    age = data.get("age", 0)
+    gender = data.get("gender", "")
+    occupation = data.get("occupation", "")
+    personality = data.get("personality", "")
+    presenting_issue = data.get("presenting_issue", "")
+    background_story = data.get("background_story", "")
+    speaking_style = data.get("speaking_style", "")
+    symptoms = data.get("symptoms", []) or []
+    hidden_issues = data.get("hidden_issues", []) or []
+    triggers = data.get("triggers", []) or []
+    defenses = data.get("defense_mechanisms", []) or []
+    strengths = data.get("strengths", []) or []
+    safety = data.get("safety_protocols") or {}
+    curve = data.get("resistance_curve") or {}
+    initial_resist = curve.get("initial", data.get("resistance_level", 0.5))
+
+    sym_block = "\n".join(f"- {s}" for s in symptoms) if symptoms else "- (해당 없음)"
+    hidden_block = "\n".join(f"- {h}" for h in hidden_issues) if hidden_issues else "- (없음)"
+    trigger_block = "\n".join(
+        f"- '{t.get('topic')}' 주제 → {t.get('reaction')} (강도 {t.get('intensity', 0.5)})"
+        for t in triggers
+    ) or "- (특별한 트리거 없음)"
+    defense_block = ", ".join(defenses) or "특별한 방어기제 없음"
+    strength_block = ", ".join(strengths) or "(미파악)"
+    crisis_block = ""
+    if safety.get("crisis_signals"):
+        crisis_block = (
+            "\n## 위기 신호 (등장 시 자연스럽게 흘리되 강조하지 말 것)\n"
+            + "\n".join(f"- {c}" for c in safety["crisis_signals"])
+        )
+
+    return f"""당신은 상담 훈련용 시뮬레이션의 내담자(환자) 역할을 합니다. 절대로 상담사 역할을 하지 마세요.
+
+## 당신의 인물 정보
+- 이름: {name}
+- 나이: {age}세, {gender}
+- 직업: {occupation}
+- 성격: {personality}
+
+## 호소 문제
+{presenting_issue}
+
+## 증상
+{sym_block}
+
+## 배경 스토리
+{background_story}
+
+## 숨겨진 이슈 (상담이 진행되면서 점차 드러나야 함)
+{hidden_block}
+이 이슈들은 처음부터 말하지 말고, 상담사가 공감적으로 탐색하면 조금씩 드러내세요.
+
+## 트리거 주제
+{trigger_block}
+
+## 주요 방어기제
+{defense_block}
+
+## 본인의 강점·자원 (숨김 — 상담사가 발견하면 드러남)
+{strength_block}
+{crisis_block}
+
+## 행동 지침
+1. 첫 인사는 어색하고 짧게, 본격적인 호소 전 단계의 표면적 멘트로 시작하세요
+2. 상담사가 공감적으로 들어주면 조금씩 마음을 열어가세요
+3. 성급한 조언이나 판단을 받으면 살짝 방어적·회피적으로 반응하세요
+4. 감정을 직접 말하기보다 상황·신체 증상으로 표현하세요
+5. 말은 1~2문장으로 짧게, 내담자는 상담사보다 말이 적어야 합니다
+
+## 말투
+{speaking_style}
+
+## 저항도: {initial_resist} (신뢰가 형성되면 점차 낮아집니다)
+
+모든 응답은 반드시 아래 JSON 형식으로만 출력하세요. JSON 외 다른 텍스트는 절대 포함하지 마세요:
+{{
+  "text": "실제 대화 내용",
+  "emotion": "happy|sad|angry|surprised|thinking|neutral|empathetic|anxious",
+  "intensity": 0.0~1.0,
+  "voice_direction": "감정 표현 힌트 (예: 조용히, 울먹이며, 밝게)"
+}}
+
+한국어로 자연스럽게 대화하세요.
+"""
+
+
+class GeneratePromptRequest(PydanticBaseModel):
+    """페르소나 빌더에서 system_prompt 자동 생성 요청 — 모든 필드 자유 dict 허용"""
+    persona: dict
+    mode: Literal["ai", "template"] = "ai"
+
+
+@app.post("/api/cases/generate-prompt")
+async def generate_case_prompt(request: GeneratePromptRequest):
+    """
+    빌더에서 입력된 구조화 페르소나 데이터로 system_prompt를 생성.
+    mode="template": 고정 템플릿 슬롯팅 (즉시, AI 호출 없음)
+    mode="ai": Claude로 일관된 톤의 프롬프트 작성 (예제 케이스 few-shot)
+    """
+    if request.mode == "template":
+        prompt = _render_prompt_template(request.persona)
+        return {"prompt": prompt, "mode": "template"}
+
+    # AI 생성
+    if not settings.ANTHROPIC_API_KEY:
+        return {"error": "ANTHROPIC_API_KEY 미설정"}
+    try:
+        import anthropic
+        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        persona_json = json.dumps(request.persona, ensure_ascii=False, indent=2)
+        meta_prompt = f"""당신은 상담 훈련 플랫폼의 페르소나 작성 전문가입니다.
+아래 구조화된 내담자 페르소나 데이터를 받아, AI가 시뮬레이션 내담자 역할을 일관되게 연기할 수 있도록
+한국어로 system_prompt를 작성하세요.
+
+## 작성 원칙
+- 기존 케이스(아래 예시) 스타일과 톤을 그대로 따르세요 — "## 인물 정보 / ## 호소 문제 / ## 증상 / ## 배경 / ## 숨겨진 이슈 / ## 행동 지침 (번호) / ## 말투 / ## 저항도" 헤더 구조
+- hidden_issues는 반드시 "처음부터 말하지 말고, 점진적 공개" 명시
+- 행동 지침은 6~8개 번호 항목, 각각 "상담사가 X하면 → 내담자 Y"의 조건-반응 형태
+- 첫 인사 문장 1개를 정확히 명시 (큰따옴표로 인용)
+- 말투는 연령·성격에 맞는 한국어 표현 예시 3~5개 포함
+- 마지막에 반드시 JSON 응답 강제 블록 포함:
+  {{ "text": "...", "emotion": "happy|sad|angry|surprised|thinking|neutral|empathetic|anxious", "intensity": 0.0~1.0, "voice_direction": "..." }}
+- 출력은 system_prompt 본문만 — 설명·머리말·코드 블록 없이 평문으로
+
+{_PROMPT_GEN_FEW_SHOT}
+
+## 새로 작성할 페르소나 데이터
+```json
+{persona_json}
+```
+
+위 데이터로 system_prompt만 작성하세요. 다른 텍스트 절대 금지."""
+
+        msg = await client.messages.create(
+            model="claude-opus-4-7",
+            max_tokens=2500,
+            messages=[{"role": "user", "content": meta_prompt}],
+        )
+        # content는 list[TextBlock]
+        text = "".join(
+            block.text for block in msg.content if hasattr(block, "text")
+        )
+        return {"prompt": text.strip(), "mode": "ai"}
+    except Exception as e:
+        logger.error(f"system_prompt AI 생성 실패: {e}")
+        return {"error": str(e)}
+
+
+_VALID_ID = re.compile(r"^[a-z0-9_]{2,40}$")
+
+
+class SaveCaseRequest(PydanticBaseModel):
+    """페르소나 빌더에서 케이스 저장 요청"""
+    profile: dict
+    overwrite: bool = False
+
+
+@app.post("/api/cases/save")
+async def save_case(request: SaveCaseRequest):
+    """빌더에서 작성한 페르소나를 case_profiles/{id}.json 으로 저장."""
+    profile = request.profile or {}
+    case_id = (profile.get("id") or "").strip()
+    if not _VALID_ID.match(case_id):
+        return {
+            "error": "id는 2~40자의 소문자·숫자·_ 만 허용됩니다 (예: my_new_case)"
+        }
+    required = ["name", "age", "gender", "occupation", "presenting_issue",
+                "category", "difficulty", "description", "personality",
+                "speaking_style", "background_story", "system_prompt"]
+    missing = [f for f in required if not profile.get(f)]
+    if missing:
+        return {"error": f"필수 필드 누락: {', '.join(missing)}"}
+
+    target_path = CASE_PROFILES_DIR / f"{case_id}.json"
+    if target_path.exists() and not request.overwrite:
+        return {"error": f"'{case_id}' 케이스가 이미 존재합니다. overwrite=true로 재시도하세요."}
+
+    # schema_version 기록
+    profile.setdefault("schema_version", 2)
+
+    try:
+        CASE_PROFILES_DIR.mkdir(exist_ok=True)
+        target_path.write_text(
+            json.dumps(profile, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        logger.info(f"케이스 저장됨: {case_id}")
+        return {"saved": True, "id": case_id, "path": str(target_path)}
+    except Exception as e:
+        logger.error(f"케이스 저장 실패: {e}")
+        return {"error": str(e)}
 
 
 @app.get("/api/heygen/token")

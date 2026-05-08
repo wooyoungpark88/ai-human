@@ -78,6 +78,112 @@ export interface CaseInfo {
   external_url?: string;
 }
 
+/** 페르소나 빌더 — v2 신규 필드 */
+export interface ClinicalInfo {
+  primary_diagnosis?: string;
+  comorbid?: string[];
+  onset_date?: string;
+  chronicity?: "acute" | "subacute" | "chronic" | "";
+  icd11_code?: string;
+}
+
+export interface RiskAssessment {
+  suicide: number;       // 0~3
+  self_harm: number;
+  harm_others: number;
+  substance: number;
+  warning_signs?: string[];
+}
+
+export interface TriggerItem {
+  topic: string;
+  reaction: string;
+  intensity: number;
+}
+
+export interface RelationshipNode {
+  role: string;
+  age?: number;
+  quality?: string;
+  dynamics?: string;
+}
+
+export interface ResistanceCurve {
+  initial: number;
+  after_rapport: number;
+  trust_gates?: string[];
+}
+
+export interface SessionPhase {
+  phase: string;
+  behavior: string;
+  duration_turns?: string;
+  trigger?: string;
+}
+
+export interface RubricItem {
+  pattern: string;
+  example?: string;
+  weight: number;
+}
+
+export interface Rubric {
+  good_responses: RubricItem[];
+  bad_responses: RubricItem[];
+}
+
+export interface SafetyProtocols {
+  crisis_signals?: string[];
+  expected_counselor_response?: string;
+  ideal_response_example?: string;
+}
+
+/** 빌더가 다루는 전체 페르소나 (저장 직전 상태) */
+export interface PersonaDraft {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  occupation: string;
+  presenting_issue: string;
+  category: string;
+  difficulty: string;
+  description: string;
+  personality: string;
+  speaking_style: string;
+  background_story: string;
+  symptoms: string[];
+  hidden_issues: string[];
+  emotional_baseline: string;
+  resistance_level: number;
+  session_goals: string[];
+  system_prompt: string;
+  // v2
+  clinical?: ClinicalInfo;
+  risk_assessment?: RiskAssessment;
+  defense_mechanisms?: string[];
+  triggers?: TriggerItem[];
+  relationships?: RelationshipNode[];
+  developmental_history?: string;
+  trauma_history?: string[];
+  strengths?: string[];
+  support_system?: string[];
+  coping_resources?: string[];
+  resistance_curve?: ResistanceCurve;
+  session_phases?: SessionPhase[];
+  rubric?: Rubric;
+  safety_protocols?: SafetyProtocols;
+  cultural_context?: string[];
+  schema_version?: number;
+  // 아바타
+  avatar_type?: AvatarType;
+  simli_face_id?: string;
+  flashhead_model_id?: string;
+  deepbrain_avatar_id?: string;
+  heygen_avatar_id?: string;
+  external_url?: string;
+}
+
 /** 피드백 평가 항목 */
 export interface FeedbackCategory {
   name: string;

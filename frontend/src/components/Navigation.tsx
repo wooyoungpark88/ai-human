@@ -39,6 +39,13 @@ export function Navigation() {
         >
           케이스 탐색
         </Link>
+        <Link
+          href="/cases/new"
+          className="px-2.5 sm:px-3 py-1.5 rounded-md text-[12px] sm:text-[12.5px] font-medium transition-colors hover:bg-white/10 whitespace-nowrap hidden sm:inline-block"
+          style={{ color: "#F5E8D6" }}
+        >
+          페르소나 빌더
+        </Link>
       </nav>
 
       <div className="ml-auto flex items-center gap-2">

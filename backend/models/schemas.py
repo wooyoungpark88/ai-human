@@ -69,8 +69,69 @@ class ClientProfile(BaseModel):
 AvatarType = Literal["vrm", "simli", "flashhead", "deepbrain", "heygen"]
 
 
+class ClinicalInfo(BaseModel):
+    """임상 추정 정보 — DSM-5/ICD-11 기반"""
+    primary_diagnosis: Optional[str] = None  # "MDD (recurrent, moderate)" 같은 추정
+    comorbid: list[str] = []                 # 공존질환
+    onset_date: Optional[str] = None         # "2025-12 경"
+    chronicity: Optional[str] = None         # acute / subacute / chronic
+    icd11_code: Optional[str] = None
+
+
+class RiskAssessment(BaseModel):
+    """위험 평가 4축 (0=없음, 1=수동적, 2=계획 단계, 3=즉시 위험)"""
+    suicide: int = 0
+    self_harm: int = 0
+    harm_others: int = 0
+    substance: int = 0
+    warning_signs: list[str] = []
+
+
+class TriggerItem(BaseModel):
+    topic: str
+    reaction: str
+    intensity: float = 0.5  # 0.0~1.0
+
+
+class RelationshipNode(BaseModel):
+    role: str          # "남편" "아들" 등
+    age: Optional[int] = None
+    quality: Optional[str] = None      # 단절 / 거리감 / 친밀 / 갈등
+    dynamics: Optional[str] = None     # 자유 텍스트
+
+
+class ResistanceCurve(BaseModel):
+    initial: float = 0.5
+    after_rapport: float = 0.3
+    trust_gates: list[str] = []        # "감정 반영 3회 이상" 등
+
+
+class SessionPhase(BaseModel):
+    phase: str                          # 초기 / 탐색 / 핵심 노출
+    behavior: str
+    duration_turns: Optional[str] = None
+    trigger: Optional[str] = None       # 다음 단계 진입 트리거
+
+
+class RubricItem(BaseModel):
+    pattern: str                        # "감정 반영" "성급한 조언"
+    example: Optional[str] = None
+    weight: float = 1.0                 # 양수=좋음, 음수=나쁨
+
+
+class Rubric(BaseModel):
+    good_responses: list[RubricItem] = []
+    bad_responses: list[RubricItem] = []
+
+
+class SafetyProtocols(BaseModel):
+    crisis_signals: list[str] = []                  # "사라지고 싶다" 등
+    expected_counselor_response: Optional[str] = None
+    ideal_response_example: Optional[str] = None
+
+
 class CaseProfile(BaseModel):
-    """상담 훈련용 내담자 케이스 프로필 — AI가 연기할 인물"""
+    """상담 훈련용 내담자 케이스 프로필 — AI가 연기할 인물 (v2)"""
     id: str
     name: str
     age: int
@@ -91,14 +152,30 @@ class CaseProfile(BaseModel):
     system_prompt: str
     voice_id: Optional[str] = None
     face_id: Optional[str] = None
-    # FlashHead 로컬 아바타 — 케이스별 학습된 얼굴 모델 식별자 (사이드카가 해석)
+
+    # === v2 신규 — 임상 깊이 ===
+    clinical: Optional[ClinicalInfo] = None
+    risk_assessment: Optional[RiskAssessment] = None
+    defense_mechanisms: list[str] = []           # ["회피", "지성화"] 등
+    triggers: list[TriggerItem] = []
+    relationships: list[RelationshipNode] = []
+    developmental_history: Optional[str] = None
+    trauma_history: list[str] = []
+    strengths: list[str] = []
+    support_system: list[str] = []
+    coping_resources: list[str] = []
+    resistance_curve: Optional[ResistanceCurve] = None
+    session_phases: list[SessionPhase] = []
+    rubric: Optional[Rubric] = None
+    safety_protocols: Optional[SafetyProtocols] = None
+    cultural_context: list[str] = []
+    schema_version: int = 1               # 1=legacy, 2=신 빌더 생성
+
+    # === 아바타 매핑 ===
     avatar_type: Optional[AvatarType] = None
     flashhead_model_id: Optional[str] = None
-    # DeepBrain AI Human Web SDK — 캐릭터 식별자 (aihuman.aistudios.com)
     deepbrain_avatar_id: Optional[str] = None
-    # HeyGen Interactive Avatar Streaming — avatar ID (e.g. "June_HR_public")
     heygen_avatar_id: Optional[str] = None
-    # 외부 데모 페이지 URL — 설정 시 카드 클릭이 새 탭으로 이동 (예: OAC 사이드카 자체 UI)
     external_url: Optional[str] = None
 
 

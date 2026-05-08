@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
 import { CaseCard } from "@/components/CaseCard";
 import { API_URL, CATEGORY_LABELS } from "@/lib/constants";
@@ -50,25 +51,35 @@ export default function CasesPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-9 py-5 sm:py-7 lg:py-8">
         {/* 페이지 헤더 */}
-        <div className="mb-5 sm:mb-7">
-          <div
-            className="text-[11.5px] flex gap-1.5 mb-1.5"
-            style={{ color: "var(--tc-text-sec)" }}
-          >
-            <span>훈련</span>
-            <span style={{ color: "var(--tc-text-muted)" }}>›</span>
-            <span>케이스 탐색</span>
+        <div className="mb-5 sm:mb-7 flex items-end justify-between gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <div
+              className="text-[11.5px] flex gap-1.5 mb-1.5"
+              style={{ color: "var(--tc-text-sec)" }}
+            >
+              <span>훈련</span>
+              <span style={{ color: "var(--tc-text-muted)" }}>›</span>
+              <span>케이스 탐색</span>
+            </div>
+            <h1 className="tc-page-h text-[20px] sm:text-[22px] lg:text-[24px]">
+              내담자 케이스
+            </h1>
+            <p
+              className="text-[12.5px] sm:text-[13px] mt-1.5 max-w-[780px] leading-relaxed"
+              style={{ color: "var(--tc-text-sec)" }}
+            >
+              연습하고 싶은 상담 케이스를 골라 시작하세요. 각 내담자는 고유한 호소 문제와
+              저항도를 가지고 있어, 다양한 상담 상황을 시뮬레이션할 수 있습니다.
+            </p>
           </div>
-          <h1 className="tc-page-h text-[20px] sm:text-[22px] lg:text-[24px]">
-            내담자 케이스
-          </h1>
-          <p
-            className="text-[12.5px] sm:text-[13px] mt-1.5 max-w-[780px] leading-relaxed"
-            style={{ color: "var(--tc-text-sec)" }}
+          <Link
+            href="/cases/new"
+            className="px-4 py-2 rounded-full text-[12.5px] font-bold transition-opacity hover:opacity-90 flex items-center gap-1.5 whitespace-nowrap shadow-[0_3px_10px_rgba(60,40,23,0.15)]"
+            style={{ background: "var(--tc-accent-dark)", color: "#fff" }}
           >
-            연습하고 싶은 상담 케이스를 골라 시작하세요. 각 내담자는 고유한 호소 문제와
-            저항도를 가지고 있어, 다양한 상담 상황을 시뮬레이션할 수 있습니다.
-          </p>
+            <span className="text-[14px] leading-none">+</span>
+            신규 페르소나
+          </Link>
         </div>
 
         {/* 필터 — 모바일에선 카테고리/난이도가 세로 스택, sm 이상은 가로 */}
