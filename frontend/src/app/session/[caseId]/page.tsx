@@ -386,53 +386,56 @@ export default function SessionPage() {
     <main className="min-h-screen" style={{ background: "var(--tc-bg)" }}>
       {/* 헤더 */}
       <header
-        className="px-6 py-3 flex items-center justify-between border-b"
+        className="px-4 sm:px-6 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3 border-b flex-wrap"
         style={{
           background: "var(--tc-card-white)",
           borderColor: "var(--tc-border)",
         }}
       >
-        <div className="flex items-center gap-3">
-          <Link
-            href="/cases"
-            className="text-[12px] hover:underline"
-            style={{ color: "var(--tc-text-sec)" }}
-          >
-            &larr; 케이스 목록
-          </Link>
-          <h1
-            className="text-[18px] font-bold"
-            style={{
-              fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
-              color: "var(--tc-accent-dark)",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {caseInfo ? `${caseInfo.name} · ${caseInfo.age}세` : "상담 세션"}
-          </h1>
-          {avatarType === "heygen" && (
-            <span className="tc-tag tc-tag-cream">HeyGen Interactive</span>
-          )}
-          {avatarType === "simli" && (
-            <span className="tc-tag tc-tag-cream">Simli</span>
-          )}
-          {avatarType === "deepbrain" && (
-            <span className="tc-tag tc-tag-blue">DeepBrain AI Human</span>
-          )}
-          <Badge variant="outline" className="gap-1.5 text-xs">
-            <span
-              className={`w-2 h-2 rounded-full ${getStatusColor(ws.status)}`}
-            />
-            {getStatusText(ws.status)}
-          </Badge>
-        </div>
-
+        <Link
+          href="/cases"
+          className="text-[12px] hover:underline flex-shrink-0"
+          style={{ color: "var(--tc-text-sec)" }}
+          aria-label="케이스 목록으로 돌아가기"
+        >
+          <span className="sm:hidden">&larr;</span>
+          <span className="hidden sm:inline">&larr; 케이스 목록</span>
+        </Link>
+        <h1
+          className="text-[16px] sm:text-[18px] font-bold truncate min-w-0"
+          style={{
+            fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+            color: "var(--tc-accent-dark)",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {caseInfo ? `${caseInfo.name} · ${caseInfo.age}세` : "상담 세션"}
+        </h1>
+        {/* 아바타 태그 — 태블릿 이상에서만 (모바일은 공간 절약) */}
+        {avatarType === "heygen" && (
+          <span className="tc-tag tc-tag-cream hidden md:inline-flex">HeyGen Interactive</span>
+        )}
+        {avatarType === "simli" && (
+          <span className="tc-tag tc-tag-cream hidden md:inline-flex">Simli</span>
+        )}
+        {avatarType === "deepbrain" && (
+          <span className="tc-tag tc-tag-blue hidden md:inline-flex">DeepBrain AI Human</span>
+        )}
+        <Badge variant="outline" className="gap-1.5 text-xs ml-auto flex-shrink-0">
+          <span
+            className={`w-2 h-2 rounded-full ${getStatusColor(ws.status)}`}
+          />
+          <span className="hidden sm:inline">{getStatusText(ws.status)}</span>
+          <span className="sm:hidden">
+            {ws.status === "connected" ? "ON" : ws.status === "connecting" ? "..." : "OFF"}
+          </span>
+        </Badge>
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex flex-col lg:flex-row gap-4 p-4 lg:h-[calc(100vh-57px)]">
+      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 p-3 sm:p-4 lg:h-[calc(100vh-57px)]">
         {/* 왼쪽: 아바타 + 마이크 + 대시보드 */}
-        <div className="flex-1 flex flex-col items-center gap-4 lg:overflow-y-auto pr-1">
+        <div className="flex-1 flex flex-col items-center gap-3 sm:gap-4 lg:overflow-y-auto lg:pr-1 min-w-0">
           <AvatarView
             avatarType={avatarType}
             vrm={avatarType === "vrm" ? vrmAvatar.vrmRef.current : undefined}
@@ -461,14 +464,14 @@ export default function SessionPage() {
 
           {/* 큰 컨트롤 바: 감정 표시 + 시작/종료 버튼 */}
           <div
-            className="w-full max-w-2xl mx-auto rounded-[14px] border px-5 py-3.5 flex items-center justify-between gap-4"
+            className="w-full max-w-2xl mx-auto rounded-[14px] border px-4 sm:px-5 py-3 sm:py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4"
             style={{
               background: "var(--tc-card-white)",
               borderColor: "var(--tc-border)",
             }}
           >
             {/* 내담자 감정 표시 (크게) */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
               <span
                 className="text-[10px] font-bold tracking-[0.16em] uppercase whitespace-nowrap"
                 style={{ color: "var(--tc-text-muted)" }}
@@ -525,12 +528,12 @@ export default function SessionPage() {
               </div>
             </div>
 
-            {/* 시작/종료 버튼 (크게) */}
+            {/* 시작/종료 버튼 (크게) — 모바일에선 풀폭 */}
             {!isSessionActive ? (
               <button
                 onClick={handleStartSession}
                 disabled={avatar.isLoading}
-                className="px-7 py-3 rounded-full text-[14.5px] font-bold transition-all hover:opacity-95 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
+                className="w-full sm:w-auto px-6 sm:px-7 py-3 rounded-full text-[14.5px] font-bold transition-all hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
                 style={{
                   background: "var(--tc-accent-dark)",
                   color: "#fff",
@@ -544,7 +547,7 @@ export default function SessionPage() {
             ) : (
               <button
                 onClick={handleStopSession}
-                className="px-6 py-3 rounded-full text-[13.5px] font-semibold transition-colors hover:bg-[var(--tc-soft-bg)] flex items-center gap-2 whitespace-nowrap"
+                className="w-full sm:w-auto px-6 py-3 rounded-full text-[13.5px] font-semibold transition-colors hover:bg-[var(--tc-soft-bg)] flex items-center justify-center gap-2 whitespace-nowrap"
                 style={{
                   background: "var(--tc-card-white)",
                   color: "var(--tc-accent-dark)",
@@ -625,8 +628,8 @@ export default function SessionPage() {
           </div>
         </div>
 
-        {/* 오른쪽: 채팅 패널 */}
-        <div className="w-full lg:w-96 h-full">
+        {/* 오른쪽: 채팅 패널 — 모바일은 고정 높이, lg 이상은 가로 컬럼 */}
+        <div className="w-full lg:w-96 h-[420px] lg:h-full flex-shrink-0">
           <ChatPanel
             messages={messages}
             partialTranscript={partialTranscript}

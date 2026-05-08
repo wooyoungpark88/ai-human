@@ -48,9 +48,9 @@ export default function CasesPage() {
     <div className="min-h-screen" style={{ background: "var(--tc-bg)" }}>
       <Navigation />
 
-      <main className="max-w-6xl mx-auto px-9 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-9 py-5 sm:py-7 lg:py-8">
         {/* 페이지 헤더 */}
-        <div className="mb-7">
+        <div className="mb-5 sm:mb-7">
           <div
             className="text-[11.5px] flex gap-1.5 mb-1.5"
             style={{ color: "var(--tc-text-sec)" }}
@@ -59,9 +59,11 @@ export default function CasesPage() {
             <span style={{ color: "var(--tc-text-muted)" }}>›</span>
             <span>케이스 탐색</span>
           </div>
-          <h1 className="tc-page-h">내담자 케이스</h1>
+          <h1 className="tc-page-h text-[20px] sm:text-[22px] lg:text-[24px]">
+            내담자 케이스
+          </h1>
           <p
-            className="text-[13px] mt-1.5 max-w-[780px]"
+            className="text-[12.5px] sm:text-[13px] mt-1.5 max-w-[780px] leading-relaxed"
             style={{ color: "var(--tc-text-sec)" }}
           >
             연습하고 싶은 상담 케이스를 골라 시작하세요. 각 내담자는 고유한 호소 문제와
@@ -69,18 +71,18 @@ export default function CasesPage() {
           </p>
         </div>
 
-        {/* 필터 */}
+        {/* 필터 — 모바일에선 카테고리/난이도가 세로 스택, sm 이상은 가로 */}
         <div
-          className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-[14px] border"
+          className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-5 sm:mb-6 p-3 sm:p-4 rounded-[14px] border"
           style={{
             background: "var(--tc-card-white)",
             borderColor: "var(--tc-border)",
           }}
         >
           {/* 카테고리 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-start sm:items-center gap-2 flex-wrap">
             <span
-              className="text-[10px] font-bold tracking-[0.16em] uppercase"
+              className="text-[10px] font-bold tracking-[0.16em] uppercase pt-1.5 sm:pt-0 flex-shrink-0"
               style={{ color: "var(--tc-text-muted)" }}
             >
               카테고리
@@ -110,13 +112,13 @@ export default function CasesPage() {
             </div>
           </div>
 
-          {/* 난이도 */}
+          {/* 난이도 — 모바일에서 상단 보더, sm 이상에서 좌측 보더 */}
           <div
-            className="flex items-center gap-2 pl-3 ml-1 border-l"
+            className="flex items-start sm:items-center gap-2 flex-wrap pt-3 sm:pt-0 sm:pl-3 sm:ml-1 border-t sm:border-t-0 sm:border-l"
             style={{ borderColor: "var(--tc-border)" }}
           >
             <span
-              className="text-[10px] font-bold tracking-[0.16em] uppercase"
+              className="text-[10px] font-bold tracking-[0.16em] uppercase pt-1.5 sm:pt-0 flex-shrink-0"
               style={{ color: "var(--tc-text-muted)" }}
             >
               난이도
