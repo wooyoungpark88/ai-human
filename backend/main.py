@@ -401,7 +401,7 @@ async def _gen_one_image(
     prompt: str,
     size: str = "1024x1792",
 ) -> bytes:
-    """OpenAI 이미지 생성 1장 — bytes 반환."""
+    """OpenAI 이미지 생성 1장 → JPEG bytes 반환 (PNG에 비해 ~10배 작음)."""
     r = await client.post(
         "https://api.openai.com/v1/images/generations",
         headers={
@@ -423,11 +423,25 @@ async def _gen_one_image(
     data = r.json()
     b64 = data["data"][0].get("b64_json")
     if b64:
-        return base64.b64decode(b64)
-    img_url = data["data"][0].get("url")
-    if img_url:
-        return (await client.get(img_url)).content
-    raise RuntimeError("OpenAI 응답에 이미지 데이터 없음")
+        png_bytes = base64.b64decode(b64)
+    else:
+        img_url = data["data"][0].get("url")
+        if not img_url:
+            raise RuntimeError("OpenAI 응답에 이미지 데이터 없음")
+        png_bytes = (await client.get(img_url)).content
+
+    # PNG → JPEG (q=88, progressive) 압축 — 저장·전송 최적화
+    try:
+        from PIL import Image
+        from io import BytesIO
+        with Image.open(BytesIO(png_bytes)) as im:
+            im = im.convert("RGB")
+            buf = BytesIO()
+            im.save(buf, "JPEG", quality=88, optimize=True, progressive=True)
+            return buf.getvalue()
+    except Exception as e:
+        logger.warning(f"JPEG 변환 실패, PNG 그대로 사용: {e}")
+        return png_bytes
 
 
 @app.post("/api/cases/generate-portrait")
@@ -467,9 +481,9 @@ async def generate_portrait(request: GeneratePortraitRequest):
                     img_bytes = await _gen_one_image(client, prompt)
                 # 단일이면 base, 다중이면 emotion suffix
                 if len(emotions) == 1 and emotion == "neutral":
-                    fname = f"{file_prefix}.png"
+                    fname = f"{file_prefix}.jpg"
                 else:
-                    fname = f"{file_prefix}_{emotion}.png"
+                    fname = f"{file_prefix}_{emotion}.jpg"
                 (PORTRAITS_DIR / fname).write_bytes(img_bytes)
                 logger.info(f"초상화 [{emotion}] 생성됨: {fname} ({len(img_bytes)} bytes)")
                 return (emotion, f"/api/portraits/{fname}", None)
@@ -510,7 +524,14 @@ async def serve_portrait(filename: str):
     target = PORTRAITS_DIR / filename
     if not target.exists():
         return JSONResponse({"error": "파일 없음"}, status_code=404)
-    return FileResponse(target, media_type="image/png")
+    ext = target.suffix.lower().lstrip(".")
+    media = {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "webp": "image/webp",
+    }.get(ext, "application/octet-stream")
+    return FileResponse(target, media_type=media)
 
 
 _VALID_ID = re.compile(r"^[a-z0-9_]{2,40}$")

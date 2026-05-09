@@ -37,16 +37,16 @@
   "simli_face_id": "",
   "voice_id": null,
   "face_id": null,
-  "portrait_url": "/api/portraits/anxiety_beginner_neutral.png",
+  "portrait_url": "/api/portraits/anxiety_beginner_neutral.jpg",
   "portrait_variants": {
-    "neutral": "/api/portraits/anxiety_beginner_neutral.png",
-    "happy": "/api/portraits/anxiety_beginner_happy.png",
-    "sad": "/api/portraits/anxiety_beginner_sad.png",
-    "angry": "/api/portraits/anxiety_beginner_angry.png",
-    "surprised": "/api/portraits/anxiety_beginner_surprised.png",
-    "thinking": "/api/portraits/anxiety_beginner_thinking.png",
-    "anxious": "/api/portraits/anxiety_beginner_anxious.png",
-    "empathetic": "/api/portraits/anxiety_beginner_empathetic.png"
+    "neutral": "/api/portraits/anxiety_beginner_neutral.jpg",
+    "happy": "/api/portraits/anxiety_beginner_happy.jpg",
+    "sad": "/api/portraits/anxiety_beginner_sad.jpg",
+    "angry": "/api/portraits/anxiety_beginner_angry.jpg",
+    "surprised": "/api/portraits/anxiety_beginner_surprised.jpg",
+    "thinking": "/api/portraits/anxiety_beginner_thinking.jpg",
+    "anxious": "/api/portraits/anxiety_beginner_anxious.jpg",
+    "empathetic": "/api/portraits/anxiety_beginner_empathetic.jpg"
   },
   "portrait_prompt": "High-resolution photographic vertical portrait of a Korean woman, age 48, a 전업주부 (파트타임 카페 근무). compassionate soft eyes, slightly tilted head, warm understanding expression. Personality cue: 참을성이 많고 남 눈치를 잘 봅니다. 자기 감정보다 가족의 안녕을 우선시해온 전형적인 헌신형입니다. 속으로는 서운함이 쌓여 있지만 표현하지 못합니다.. Same identity reference [anxiety_beginner] — keep same hairstyle, facial structure, and clothing across all variants. Casual contemporary Korean attire, soft three-point studio lighting, neutral warm-toned indoor background, head-and-shoulders framing centered, realistic skin texture and natural pores, subtle catchlight in eyes. Documentary photo style, sharp focus on face, natural color grading, no text, no watermarks, no logos, single person only. Suitable for counseling training simulation — authentic and dignified."
 }
