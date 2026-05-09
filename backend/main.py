@@ -137,6 +137,7 @@ async def list_cases():
                 "heygen_avatar_id": data.get("heygen_avatar_id", ""),
                 "external_url": data.get("external_url", ""),
                 "portrait_url": data.get("portrait_url", ""),
+                "portrait_variants": data.get("portrait_variants") or {},
             })
     return {"cases": cases}
 
@@ -342,110 +343,162 @@ async def generate_case_prompt(request: GeneratePromptRequest):
         return {"error": str(e)}
 
 
-def _build_portrait_prompt(persona: dict) -> str:
-    """페르소나 데이터에서 DALL-E 프롬프트 자동 생성.
+PORTRAIT_EMOTIONS = [
+    "neutral", "happy", "sad", "angry",
+    "surprised", "thinking", "anxious", "empathetic",
+]
 
-    한국인·실사·상담 시뮬용 톤 — 자극적이거나 비현실적인 묘사 회피.
+_EMOTION_HINTS = {
+    "neutral":    "calm neutral expression, relaxed mouth, soft eye contact",
+    "happy":      "warm gentle smile, light eye creases, comfortable expression",
+    "sad":        "soft melancholic expression, slight downturn at mouth, tired eyes, gentle gaze",
+    "angry":      "controlled tension in jaw, slight frown between brows, lips pressed, restrained",
+    "surprised":  "slightly raised eyebrows, parted lips, alert eyes, gentle surprise (not exaggerated)",
+    "thinking":   "thoughtful pensive look, gaze slightly off-camera, hand near chin allowed, contemplative",
+    "anxious":    "subtle worry between brows, slight tension around eyes, lips slightly tight, uneasy",
+    "empathetic": "compassionate soft eyes, slightly tilted head, warm understanding expression",
+}
+
+
+def _build_portrait_prompt(persona: dict, emotion: str = "neutral") -> str:
+    """페르소나 데이터 + 감정으로 DALL-E 프롬프트 생성.
+
+    한국인·실사·세로 구도·상담 시뮬용 톤. 동일 인물 일관성을 위해 외모 단서 고정.
     """
     age = persona.get("age", 30)
     gender_raw = persona.get("gender", "여성")
     gender_en = "woman" if gender_raw == "여성" else "man" if gender_raw == "남성" else "person"
-    occupation = persona.get("occupation", "office worker")
-    personality = (persona.get("personality") or "").replace("\n", " ")[:200]
-    speaking_style = (persona.get("speaking_style") or "").replace("\n", " ")[:120]
-    baseline = persona.get("emotional_baseline", "neutral")
-    emotion_hint = {
-        "anxious": "subtly anxious expression, slightly tense",
-        "sad": "soft melancholic expression, tired eyes",
-        "happy": "gentle warm smile",
-        "thinking": "thoughtful look, slight downcast gaze",
-        "empathetic": "compassionate, soft eyes",
-        "angry": "controlled tension in jaw, neutral mouth",
-        "neutral": "calm neutral expression",
-    }.get(baseline, "calm neutral expression")
+    occupation = (persona.get("occupation") or "office worker").replace("\n", " ")[:120]
+    personality = (persona.get("personality") or "").replace("\n", " ")[:160]
+    name_seed = persona.get("id") or persona.get("name") or "subject"
+
+    emotion_hint = _EMOTION_HINTS.get(emotion, _EMOTION_HINTS["neutral"])
 
     return (
-        f"Photographic realistic portrait of a Korean {gender_en}, age {age}, "
-        f"working as a {occupation}. {emotion_hint}. "
-        f"Personality cue: {personality}. Speaking style cue: {speaking_style}. "
-        f"Casual contemporary clothing, soft natural lighting, neutral indoor background, "
-        f"head and upper shoulders framing, looking gently toward camera. "
-        f"Documentary photo style, realistic skin texture, no text, no logos, no watermarks. "
-        f"Suitable for counseling training simulation — approachable but reserved."
+        f"High-resolution photographic vertical portrait of a Korean {gender_en}, age {age}, "
+        f"a {occupation}. {emotion_hint}. "
+        f"Personality cue: {personality}. "
+        f"Same identity reference [{name_seed}] — keep same hairstyle, facial structure, and clothing across all variants. "
+        f"Casual contemporary Korean attire, soft three-point studio lighting, "
+        f"neutral warm-toned indoor background, head-and-shoulders framing centered, "
+        f"realistic skin texture and natural pores, subtle catchlight in eyes. "
+        f"Documentary photo style, sharp focus on face, natural color grading, "
+        f"no text, no watermarks, no logos, single person only. "
+        f"Suitable for counseling training simulation — authentic and dignified."
     )
 
 
 class GeneratePortraitRequest(PydanticBaseModel):
-    """페르소나 초상화 생성 요청"""
+    """페르소나 초상화 생성 요청 — 단일 또는 8가지 감정 변형"""
     persona: dict
     prompt_override: Optional[str] = None
-    case_id: Optional[str] = None  # 지정 시 case_id.png로 저장 (덮어쓰기)
+    case_id: Optional[str] = None
+    emotions: Optional[list[str]] = None  # None 또는 ["neutral"] = 단일, [...8] = 변형 묶음
+
+
+async def _gen_one_image(
+    client: httpx.AsyncClient,
+    prompt: str,
+    size: str = "1024x1792",
+) -> bytes:
+    """OpenAI 이미지 생성 1장 — bytes 반환."""
+    r = await client.post(
+        "https://api.openai.com/v1/images/generations",
+        headers={
+            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": settings.PORTRAIT_MODEL,
+            "prompt": prompt,
+            "size": size,
+            "quality": "standard",
+            "n": 1,
+            "response_format": "b64_json",
+        },
+        timeout=120.0,
+    )
+    if r.status_code >= 400:
+        raise RuntimeError(f"OpenAI {r.status_code}: {r.text[:200]}")
+    data = r.json()
+    b64 = data["data"][0].get("b64_json")
+    if b64:
+        return base64.b64decode(b64)
+    img_url = data["data"][0].get("url")
+    if img_url:
+        return (await client.get(img_url)).content
+    raise RuntimeError("OpenAI 응답에 이미지 데이터 없음")
 
 
 @app.post("/api/cases/generate-portrait")
 async def generate_portrait(request: GeneratePortraitRequest):
-    """OpenAI 이미지 모델로 페르소나 초상화 생성 → portraits 디렉토리에 저장 → URL 반환.
+    """OpenAI 이미지 모델로 페르소나 초상화 생성.
 
     실시간 영상 AI 휴먼(HeyGen/Simli/DeepBrain/VRM)과는 완전히 별개의 정적 이미지.
-    카드·명세 페이지에서 인물 식별용으로 사용.
+    emotions 미지정/단일: 1장만 생성 → portrait_url 용
+    emotions=[8개]: 동일 인물 시드 + 표정 다른 8장 → portrait_variants 용
+
+    동시 호출 4건으로 cap (DALL-E 3 RPM 한계 회피).
     """
     if not settings.OPENAI_API_KEY:
         return {"error": "OPENAI_API_KEY 미설정 — backend .env에 추가 필요"}
 
-    prompt = request.prompt_override or _build_portrait_prompt(request.persona)
-    # 파일명: case_id 우선, 없으면 timestamp 기반 임시
     case_id = request.case_id or request.persona.get("id") or ""
-    if case_id and _VALID_ID.match(case_id):
-        filename = f"{case_id}.png"
-    else:
-        filename = f"tmp_{int(time.time() * 1000)}.png"
+    file_prefix = case_id if case_id and _VALID_ID.match(case_id) else f"tmp_{int(time.time() * 1000)}"
 
-    try:
-        async with httpx.AsyncClient(timeout=90.0) as client:
-            r = await client.post(
-                "https://api.openai.com/v1/images/generations",
-                headers={
-                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": settings.PORTRAIT_MODEL,
-                    "prompt": prompt,
-                    "size": "1024x1024",
-                    "quality": "standard",
-                    "n": 1,
-                    "response_format": "b64_json",
-                },
-            )
-            if r.status_code >= 400:
-                logger.error(f"OpenAI image gen 실패: {r.status_code} {r.text[:300]}")
-                return {"error": f"{r.status_code}: {r.text[:200]}"}
-            data = r.json()
-            b64 = data["data"][0].get("b64_json")
-            if not b64:
-                # gpt-image-1 등 일부 모델은 url만 반환 — fallback으로 받기
-                img_url = data["data"][0].get("url")
-                if img_url:
-                    img_resp = await client.get(img_url)
-                    img_bytes = img_resp.content
+    emotions = request.emotions or ["neutral"]
+    # 정해진 8개 외 무시
+    emotions = [e for e in emotions if e in PORTRAIT_EMOTIONS]
+    if not emotions:
+        emotions = ["neutral"]
+
+    sem = asyncio.Semaphore(4)
+    variants: dict[str, str] = {}
+    primary_url: Optional[str] = None
+    last_prompt = ""
+
+    async def _do(emotion: str) -> tuple[str, Optional[str], Optional[str]]:
+        nonlocal last_prompt
+        prompt = request.prompt_override or _build_portrait_prompt(request.persona, emotion)
+        last_prompt = prompt
+        async with sem:
+            try:
+                async with httpx.AsyncClient(timeout=130.0) as client:
+                    img_bytes = await _gen_one_image(client, prompt)
+                # 단일이면 base, 다중이면 emotion suffix
+                if len(emotions) == 1 and emotion == "neutral":
+                    fname = f"{file_prefix}.png"
                 else:
-                    return {"error": "OpenAI 응답에 이미지 데이터 없음"}
-            else:
-                img_bytes = base64.b64decode(b64)
+                    fname = f"{file_prefix}_{emotion}.png"
+                (PORTRAITS_DIR / fname).write_bytes(img_bytes)
+                logger.info(f"초상화 [{emotion}] 생성됨: {fname} ({len(img_bytes)} bytes)")
+                return (emotion, f"/api/portraits/{fname}", None)
+            except Exception as e:
+                logger.error(f"초상화 [{emotion}] 실패: {e}")
+                return (emotion, None, str(e))
 
-        target = PORTRAITS_DIR / filename
-        target.write_bytes(img_bytes)
-        url_path = f"/api/portraits/{filename}"
-        logger.info(f"초상화 생성됨: {filename} ({len(img_bytes)} bytes)")
-        return {
-            "url": url_path,
-            "absolute_url": None,  # 프론트가 API_URL과 결합
-            "filename": filename,
-            "prompt_used": prompt,
-        }
-    except Exception as e:
-        logger.error(f"초상화 생성 오류: {e}")
-        return {"error": str(e)}
+    results = await asyncio.gather(*(_do(e) for e in emotions))
+    errors: list[str] = []
+    for emo, url, err in results:
+        if url:
+            variants[emo] = url
+            if emo == "neutral":
+                primary_url = url
+        else:
+            errors.append(f"{emo}: {err}")
+
+    if not variants:
+        return {"error": f"전체 생성 실패 — {errors[0] if errors else 'unknown'}"}
+    if not primary_url:
+        primary_url = next(iter(variants.values()))
+
+    return {
+        "url": primary_url,
+        "variants": variants,
+        "prompt_used": last_prompt,
+        "errors": errors or None,
+        "filename": Path(primary_url).name,
+    }
 
 
 @app.get("/api/portraits/{filename}")

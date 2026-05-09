@@ -96,10 +96,17 @@ export default function NewPersonaPage() {
       [parent]: { ...(p[parent] as object), ...patch } as PersonaDraft[P],
     }));
 
-  const generatePortrait = async (promptOverride?: string) => {
-    setBusy("portrait");
+  const generatePortrait = async (
+    mode: "single" | "all_emotions",
+    promptOverride?: string
+  ) => {
+    setBusy(`portrait-${mode}`);
     setToast(null);
     try {
+      const emotions =
+        mode === "all_emotions"
+          ? ["neutral", "happy", "sad", "angry", "surprised", "thinking", "anxious", "empathetic"]
+          : ["neutral"];
       const res = await fetch(`${API_URL}/api/cases/generate-portrait`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,6 +114,7 @@ export default function NewPersonaPage() {
           persona,
           prompt_override: promptOverride,
           case_id: persona.id || undefined,
+          emotions,
         }),
       });
       const data = await res.json();
@@ -114,8 +122,18 @@ export default function NewPersonaPage() {
         setToast({ type: "err", msg: data.error });
       } else if (data.url) {
         update("portrait_url", data.url);
+        if (data.variants) {
+          update("portrait_variants", data.variants);
+        }
         update("portrait_prompt", data.prompt_used);
-        setToast({ type: "ok", msg: "초상화 생성 완료" });
+        const cnt = data.variants ? Object.keys(data.variants).length : 1;
+        setToast({
+          type: "ok",
+          msg:
+            data.errors?.length > 0
+              ? `${cnt}장 생성 완료 (${data.errors.length}건 실패)`
+              : `${cnt}장 생성 완료`,
+        });
       }
     } catch (e) {
       setToast({ type: "err", msg: e instanceof Error ? e.message : "생성 실패" });
@@ -327,6 +345,17 @@ export default function NewPersonaPage() {
 
 /* ============ 섹션 컴포넌트 ============ */
 
+const EMOTION_LABELS: Record<string, string> = {
+  neutral: "평온",
+  happy: "행복",
+  sad: "슬픔",
+  angry: "분노",
+  surprised: "놀람",
+  thinking: "생각",
+  anxious: "불안",
+  empathetic: "공감",
+};
+
 function SectionBasic({
   persona,
   update,
@@ -335,10 +364,12 @@ function SectionBasic({
 }: {
   persona: PersonaDraft;
   update: <K extends keyof PersonaDraft>(k: K, v: PersonaDraft[K]) => void;
-  onGeneratePortrait: (prompt?: string) => void;
+  onGeneratePortrait: (mode: "single" | "all_emotions", prompt?: string) => void;
   busy: string | null;
 }) {
   const [editPrompt, setEditPrompt] = useState(false);
+  const variants = persona.portrait_variants || {};
+  const variantsCount = Object.keys(variants).length;
   return (
     <div className="space-y-4">
       <H2>기본 정보</H2>
@@ -405,21 +436,24 @@ function SectionBasic({
         />
       </Field>
 
-      {/* === 초상화 생성 (정적 사진) === */}
+      {/* === 초상화 생성 (정적 사진 — 8가지 감정 변형) === */}
       <div className="pt-4 mt-4 border-t" style={{ borderColor: "var(--tc-border)" }}>
         <H2>인물 사진 (정적 초상화)</H2>
         <p
           className="text-[11.5px] mt-1 mb-3"
           style={{ color: "var(--tc-text-muted)" }}
         >
-          카드·명세에 표시되는 정적 이미지입니다. 실시간 영상 AI 휴먼(HeyGen/Simli/DeepBrain)과는 별개로
-          OpenAI DALL-E 3가 페르소나 정보를 바탕으로 한국인 실사 톤의 인물 사진을 생성합니다.
+          OpenAI DALL-E 3가 페르소나 정보로 한국인 실사 세로 초상화를 생성합니다.
+          8가지 감정 변형을 만들면 세션 중 내담자 감정 변화에 따라 표정이 자동으로 바뀝니다.
+          (실시간 영상 AI 휴먼과는 별개)
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-4 items-start">
-          {/* 미리보기 */}
+
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
+          {/* 큰 미리보기 (neutral 또는 portrait_url) */}
           <div
-            className="aspect-square w-full rounded-[12px] overflow-hidden flex items-center justify-center"
+            className="w-full rounded-[14px] overflow-hidden flex items-center justify-center"
             style={{
+              aspectRatio: "4 / 5",
               background: "var(--tc-soft-bg)",
               border: "1.5px dashed var(--tc-border-warm)",
             }}
@@ -433,7 +467,7 @@ function SectionBasic({
               />
             ) : (
               <div className="text-center px-3" style={{ color: "var(--tc-text-muted)" }}>
-                <div className="text-[34px] leading-none mb-1.5">🎨</div>
+                <div className="text-[40px] leading-none mb-1.5">🎨</div>
                 <p className="text-[11px]">초상화 미생성</p>
               </div>
             )}
@@ -443,24 +477,37 @@ function SectionBasic({
           <div className="space-y-2.5">
             <button
               type="button"
-              onClick={() => onGeneratePortrait()}
-              disabled={busy === "portrait"}
-              className="w-full px-4 py-2.5 rounded-full text-[12.5px] font-bold disabled:opacity-50 transition-opacity hover:opacity-95"
+              onClick={() => onGeneratePortrait("all_emotions")}
+              disabled={busy?.startsWith("portrait")}
+              className="w-full px-4 py-3 rounded-full text-[13px] font-bold disabled:opacity-50 transition-opacity hover:opacity-95 shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
               style={{ background: "var(--tc-accent-dark)", color: "#fff" }}
             >
-              {busy === "portrait"
-                ? "DALL-E 생성 중... (10~30초)"
-                : persona.portrait_url
-                  ? "✦ 다시 생성"
-                  : "✦ DALL-E로 초상화 생성"}
+              {busy === "portrait-all_emotions"
+                ? "8장 생성 중... (~1분 소요)"
+                : "✦ 8가지 표정 모두 생성 (권장)"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onGeneratePortrait("single")}
+              disabled={busy?.startsWith("portrait")}
+              className="w-full px-4 py-2 rounded-full text-[12px] font-semibold transition-colors disabled:opacity-50"
+              style={{
+                background: "var(--tc-card-white)",
+                color: "var(--tc-accent-dark)",
+                border: "1.5px solid var(--tc-border-warm)",
+              }}
+            >
+              {busy === "portrait-single"
+                ? "생성 중..."
+                : "기본(평온) 1장만 생성 (~15초)"}
             </button>
             <button
               type="button"
               onClick={() => setEditPrompt((s) => !s)}
-              className="w-full px-3 py-1.5 rounded-full text-[11.5px] font-medium"
+              className="w-full px-3 py-1.5 rounded-full text-[11px] font-medium"
               style={{
                 background: "var(--tc-soft-bg)",
-                color: "var(--tc-text)",
+                color: "var(--tc-text-sec)",
                 border: "1px solid var(--tc-border)",
               }}
             >
@@ -477,8 +524,8 @@ function SectionBasic({
                 />
                 <button
                   type="button"
-                  onClick={() => onGeneratePortrait(persona.portrait_prompt || undefined)}
-                  disabled={busy === "portrait"}
+                  onClick={() => onGeneratePortrait("all_emotions", persona.portrait_prompt || undefined)}
+                  disabled={busy?.startsWith("portrait")}
                   className="px-3 py-1.5 rounded-full text-[11.5px] font-semibold disabled:opacity-50"
                   style={{
                     background: "var(--tc-card-white)",
@@ -486,20 +533,78 @@ function SectionBasic({
                     border: "1.5px solid var(--tc-border-warm)",
                   }}
                 >
-                  이 프롬프트로 재생성
+                  이 프롬프트로 8장 재생성
                 </button>
               </div>
             )}
             {persona.portrait_url && !editPrompt && persona.portrait_prompt && (
               <details className="text-[11px]" style={{ color: "var(--tc-text-muted)" }}>
                 <summary className="cursor-pointer">사용된 프롬프트 보기</summary>
-                <p className="mt-1.5 px-2 py-1.5 rounded" style={{ background: "var(--tc-soft-bg)" }}>
+                <p
+                  className="mt-1.5 px-2 py-1.5 rounded leading-relaxed"
+                  style={{ background: "var(--tc-soft-bg)" }}
+                >
                   {persona.portrait_prompt}
                 </p>
               </details>
             )}
           </div>
         </div>
+
+        {/* 8가지 표정 갤러리 */}
+        {variantsCount > 0 && (
+          <div className="mt-4">
+            <p
+              className="text-[10px] font-bold tracking-[0.16em] uppercase mb-2"
+              style={{ color: "var(--tc-text-muted)" }}
+            >
+              감정별 변형 ({variantsCount}/8)
+            </p>
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+              {Object.entries(EMOTION_LABELS).map(([emo, label]) => {
+                const url = variants[emo];
+                return (
+                  <div
+                    key={emo}
+                    className="aspect-[4/5] rounded-md overflow-hidden flex items-center justify-center text-center"
+                    style={{
+                      background: url ? "transparent" : "var(--tc-soft-bg)",
+                      border: `1px solid ${url ? "var(--tc-border-warm)" : "var(--tc-border)"}`,
+                    }}
+                    title={label}
+                  >
+                    {url ? (
+                      <div className="relative w-full h-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`${API_URL}${url}`}
+                          alt={label}
+                          className="w-full h-full object-cover"
+                        />
+                        <span
+                          className="absolute bottom-0 left-0 right-0 text-[9.5px] font-bold py-0.5 text-center backdrop-blur-sm"
+                          style={{
+                            background: "rgba(255, 246, 234, 0.85)",
+                            color: "var(--tc-accent-deep)",
+                          }}
+                        >
+                          {label}
+                        </span>
+                      </div>
+                    ) : (
+                      <span
+                        className="text-[10px]"
+                        style={{ color: "var(--tc-text-muted)" }}
+                      >
+                        {label}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

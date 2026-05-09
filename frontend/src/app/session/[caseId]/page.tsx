@@ -401,6 +401,34 @@ export default function SessionPage() {
           <span className="sm:hidden">&larr;</span>
           <span className="hidden sm:inline">&larr; 케이스 목록</span>
         </Link>
+        {/* 감정에 따라 변하는 초상화 썸네일 (variants 있을 때만) */}
+        {(() => {
+          const variants = caseInfo?.portrait_variants;
+          const portraitUrl = variants?.[currentEmotion] || variants?.neutral || caseInfo?.portrait_url;
+          if (!portraitUrl) return null;
+          return (
+            <div
+              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden flex-shrink-0 transition-all duration-500"
+              style={{
+                border: `2px solid ${
+                  isSessionActive ? "var(--tc-accent-light)" : "var(--tc-border-warm)"
+                }`,
+                boxShadow: isSessionActive
+                  ? "0 0 0 3px rgba(212, 165, 132, 0.2)"
+                  : "none",
+              }}
+              title={`현재 감정: ${currentEmotion}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${API_URL}${portraitUrl}`}
+                alt={caseInfo?.name || ""}
+                className="w-full h-full object-cover transition-opacity duration-500"
+                style={{ opacity: 0.7 + emotionIntensity * 0.3 }}
+              />
+            </div>
+          );
+        })()}
         <h1
           className="text-[16px] sm:text-[18px] font-bold truncate min-w-0"
           style={{

@@ -20,33 +20,50 @@ export default function CaseSpecPage() {
   const [portraitBusy, setPortraitBusy] = useState(false);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
-  const regeneratePortrait = async () => {
+  const regeneratePortrait = async (mode: "single" | "all_emotions") => {
     if (!data) return;
     setPortraitBusy(true);
     setToast(null);
     try {
+      const emotions =
+        mode === "all_emotions"
+          ? ["neutral", "happy", "sad", "angry", "surprised", "thinking", "anxious", "empathetic"]
+          : ["neutral"];
       const r = await fetch(`${API_URL}/api/cases/generate-portrait`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ persona: data, case_id: caseId }),
+        body: JSON.stringify({ persona: data, case_id: caseId, emotions }),
       });
       const j = await r.json();
       if (j.error) {
         setToast({ type: "err", msg: j.error });
-      } else if (j.url) {
-        // 케이스 JSON에도 portrait_url 갱신
-        await fetch(`${API_URL}/api/cases/save`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            profile: { ...data, portrait_url: j.url, portrait_prompt: j.prompt_used },
-            overwrite: true,
-          }),
-        });
-        // cache-buster
-        setData({ ...data, portrait_url: `${j.url}?t=${Date.now()}`, portrait_prompt: j.prompt_used });
-        setToast({ type: "ok", msg: "초상화 재생성 + 저장 완료" });
+        return;
       }
+      const merged: PersonaDraft = {
+        ...data,
+        portrait_url: j.url,
+        portrait_variants: j.variants
+          ? { ...(data.portrait_variants || {}), ...j.variants }
+          : data.portrait_variants,
+        portrait_prompt: j.prompt_used,
+      };
+      await fetch(`${API_URL}/api/cases/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: merged, overwrite: true }),
+      });
+      const t = Date.now();
+      setData({
+        ...merged,
+        portrait_url: `${j.url}?t=${t}`,
+        portrait_variants: j.variants
+          ? Object.fromEntries(
+              Object.entries(j.variants).map(([k, v]) => [k, `${v}?t=${t}`])
+            )
+          : merged.portrait_variants,
+      });
+      const cnt = j.variants ? Object.keys(j.variants).length : 1;
+      setToast({ type: "ok", msg: `${cnt}장 재생성 + 저장 완료` });
     } catch (e) {
       setToast({ type: "err", msg: e instanceof Error ? e.message : "실패" });
     } finally {
@@ -104,29 +121,29 @@ export default function CaseSpecPage() {
           </div>
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div className="min-w-0 flex items-start gap-4">
-              {/* 초상화 (있을 때만) */}
-              {data.portrait_url ? (
+              {/* 초상화 — 큰 사이즈 (있을 때만) */}
+              {data.portrait_url || data.portrait_variants?.neutral ? (
                 <div
-                  className="w-[88px] h-[88px] rounded-[14px] overflow-hidden flex-shrink-0"
+                  className="w-[120px] h-[150px] sm:w-[140px] sm:h-[175px] rounded-[14px] overflow-hidden flex-shrink-0"
                   style={{ background: "var(--tc-soft-bg)", border: "1.5px solid var(--tc-border-warm)" }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`${API_URL}${data.portrait_url}`}
+                    src={`${API_URL}${data.portrait_variants?.neutral || data.portrait_url}`}
                     alt={data.name}
                     className="w-full h-full object-cover"
                   />
                 </div>
               ) : (
                 <div
-                  className="w-[88px] h-[88px] rounded-[14px] flex items-center justify-center flex-shrink-0"
+                  className="w-[120px] h-[150px] sm:w-[140px] sm:h-[175px] rounded-[14px] flex items-center justify-center flex-shrink-0"
                   style={{
                     background: "var(--tc-soft-bg)",
                     border: "1.5px dashed var(--tc-border-warm)",
                     color: "var(--tc-text-muted)",
                   }}
                 >
-                  <span style={{ fontSize: 32 }}>👤</span>
+                  <span style={{ fontSize: 44 }}>👤</span>
                 </div>
               )}
               <div className="min-w-0">
@@ -163,7 +180,7 @@ export default function CaseSpecPage() {
             </div>
             <div className="flex gap-2 flex-shrink-0 flex-wrap">
               <button
-                onClick={regeneratePortrait}
+                onClick={() => regeneratePortrait("all_emotions")}
                 disabled={portraitBusy}
                 className="px-4 py-2 rounded-full text-[12px] font-semibold disabled:opacity-50 transition-colors"
                 style={{
@@ -172,7 +189,11 @@ export default function CaseSpecPage() {
                   border: "1.5px solid var(--tc-border-warm)",
                 }}
               >
-                {portraitBusy ? "생성 중..." : data.portrait_url ? "🎨 초상화 재생성" : "🎨 초상화 생성"}
+                {portraitBusy
+                  ? "생성 중..."
+                  : (data.portrait_variants && Object.keys(data.portrait_variants).length >= 8)
+                    ? "🎨 8장 재생성"
+                    : "🎨 8가지 표정 생성"}
               </button>
               <Link
                 href={`/session/${caseId}`}
@@ -200,6 +221,71 @@ export default function CaseSpecPage() {
         {/* 본문 */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
           <div className="space-y-4">
+            {/* 8가지 표정 갤러리 (있을 때만) */}
+            {data.portrait_variants && Object.keys(data.portrait_variants).length > 0 && (
+              <Card title={`감정별 표정 (${Object.keys(data.portrait_variants).length}/8)`}>
+                <p
+                  className="text-[11.5px] mb-3"
+                  style={{ color: "var(--tc-text-muted)" }}
+                >
+                  세션 중 내담자의 감정에 따라 카드·세션 헤더의 사진이 자동으로 바뀝니다.
+                </p>
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                  {[
+                    ["neutral", "평온"],
+                    ["happy", "행복"],
+                    ["sad", "슬픔"],
+                    ["angry", "분노"],
+                    ["surprised", "놀람"],
+                    ["thinking", "생각"],
+                    ["anxious", "불안"],
+                    ["empathetic", "공감"],
+                  ].map(([emo, label]) => {
+                    const url = data.portrait_variants?.[emo];
+                    return (
+                      <div
+                        key={emo}
+                        className="aspect-[4/5] rounded-md overflow-hidden relative"
+                        style={{
+                          background: url ? "transparent" : "var(--tc-soft-bg)",
+                          border: `1px solid ${url ? "var(--tc-border-warm)" : "var(--tc-border)"}`,
+                        }}
+                      >
+                        {url ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={`${API_URL}${url}`}
+                              alt={label}
+                              className="w-full h-full object-cover"
+                            />
+                            <span
+                              className="absolute bottom-0 left-0 right-0 text-[9.5px] font-bold py-0.5 text-center"
+                              style={{
+                                background: "rgba(255, 246, 234, 0.9)",
+                                color: "var(--tc-accent-deep)",
+                              }}
+                            >
+                              {label}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span
+                              className="text-[10px]"
+                              style={{ color: "var(--tc-text-muted)" }}
+                            >
+                              {label}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+
             {/* 호소 + 설명 */}
             <Card title="호소 문제">
               <p className="text-[14px] leading-relaxed mb-3" style={{ color: "var(--tc-text)" }}>

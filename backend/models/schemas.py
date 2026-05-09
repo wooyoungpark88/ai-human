@@ -171,9 +171,10 @@ class CaseProfile(BaseModel):
     cultural_context: list[str] = []
     schema_version: int = 1               # 1=legacy, 2=신 빌더 생성
 
-    # === 정적 초상화 (AI 생성 또는 업로드한 이미지) — 영상 아바타와 별개 ===
-    portrait_url: Optional[str] = None
-    portrait_prompt: Optional[str] = None  # 마지막 생성 시 사용한 프롬프트 (재생성 참고)
+    # === 정적 초상화 (AI 생성) — 영상 아바타와 별개 ===
+    portrait_url: Optional[str] = None  # 단일 또는 neutral 변형 (호환성)
+    portrait_variants: Optional[dict[str, str]] = None  # 감정별 8장 (neutral/happy/sad/angry/surprised/thinking/anxious/empathetic)
+    portrait_prompt: Optional[str] = None
 
     # === 아바타 매핑 (실시간 영상 AI 휴먼) ===
     avatar_type: Optional[AvatarType] = None
