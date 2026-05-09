@@ -25,5 +25,17 @@
   "flashhead_model_id": "default",
   "external_url": "https://localhost:8282",
   "voice_id": null,
-  "face_id": null
+  "face_id": null,
+  "portrait_url": "/api/portraits/oac_demo_neutral.png",
+  "portrait_variants": {
+    "neutral": "/api/portraits/oac_demo_neutral.png",
+    "happy": "/api/portraits/oac_demo_happy.png",
+    "sad": "/api/portraits/oac_demo_sad.png",
+    "angry": "/api/portraits/oac_demo_angry.png",
+    "surprised": "/api/portraits/oac_demo_surprised.png",
+    "thinking": "/api/portraits/oac_demo_thinking.png",
+    "anxious": "/api/portraits/oac_demo_anxious.png",
+    "empathetic": "/api/portraits/oac_demo_empathetic.png"
+  },
+  "portrait_prompt": "High-resolution photographic vertical portrait of a Korean woman, age 32, a 직장인 / 워킹맘. compassionate soft eyes, slightly tilted head, warm understanding expression. Personality cue: OAC 사이드카가 자체 LLM(Claude)으로 응답하며, 페르소나는 OAC config의 system_prompt에서 정의됩니다.. Same identity reference [oac_demo] — keep same hairstyle, facial structure, and clothing across all variants. Casual contemporary Korean attire, soft three-point studio lighting, neutral warm-toned indoor background, head-and-shoulders framing centered, realistic skin texture and natural pores, subtle catchlight in eyes. Documentary photo style, sharp focus on face, natural color grading, no text, no watermarks, no logos, single person only. Suitable for counseling training simulation — authentic and dignified."
 }
