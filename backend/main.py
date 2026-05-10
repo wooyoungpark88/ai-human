@@ -363,7 +363,8 @@ _EMOTION_HINTS = {
 def _build_portrait_prompt(persona: dict, emotion: str = "neutral") -> str:
     """페르소나 데이터 + 감정으로 DALL-E 프롬프트 생성.
 
-    한국인·실사·세로 구도·상담 시뮬용 톤. 동일 인물 일관성을 위해 외모 단서 고정.
+    한국인 실사 사실주의 사진 — 다큐멘터리 카메라 표현으로 진짜 사람 톤 강화.
+    동일 인물 일관성을 위해 시드(case_id) + 외모 단서 고정.
     """
     age = persona.get("age", 30)
     gender_raw = persona.get("gender", "여성")
@@ -374,17 +375,36 @@ def _build_portrait_prompt(persona: dict, emotion: str = "neutral") -> str:
 
     emotion_hint = _EMOTION_HINTS.get(emotion, _EMOTION_HINTS["neutral"])
 
+    # 연령대별 한국인 외모 단서 — 일관성·사실성 강화
+    if age < 20:
+        age_band = "Korean teenager, fresh youthful face, school-age"
+    elif age < 30:
+        age_band = "young Korean adult in their twenties, clear smooth skin"
+    elif age < 40:
+        age_band = "Korean adult in their thirties, mature confident face"
+    elif age < 50:
+        age_band = "Korean adult in their forties, subtle expression lines"
+    else:
+        age_band = "middle-aged Korean adult, natural age signs around eyes"
+
     return (
-        f"High-resolution photographic vertical portrait of a Korean {gender_en}, age {age}, "
-        f"a {occupation}. {emotion_hint}. "
-        f"Personality cue: {personality}. "
-        f"Same identity reference [{name_seed}] — keep same hairstyle, facial structure, and clothing across all variants. "
-        f"Casual contemporary Korean attire, soft three-point studio lighting, "
-        f"neutral warm-toned indoor background, head-and-shoulders framing centered, "
-        f"realistic skin texture and natural pores, subtle catchlight in eyes. "
-        f"Documentary photo style, sharp focus on face, natural color grading, "
-        f"no text, no watermarks, no logos, single person only. "
-        f"Suitable for counseling training simulation — authentic and dignified."
+        f"Hyper-realistic documentary photograph, vertical portrait of a real Korean {gender_en}, "
+        f"age {age}. {age_band}. Working as a {occupation}. "
+        f"{emotion_hint}. "
+        f"Authentic East Asian facial features: warm ivory skin tone with natural undertones, "
+        f"naturally proportioned face, dark brown or black hair, "
+        f"almond-shaped eyes with monolid or natural double eyelid, "
+        f"realistic Korean styling — natural minimal makeup if applicable, contemporary K-fashion. "
+        f"Personality conveyed through expression: {personality}. "
+        f"Shot on Canon EOS R5 with 50mm f/1.8 lens, soft natural window light, "
+        f"shallow depth of field, neutral warm-toned indoor background, head-and-shoulders framing. "
+        f"Photographic realism: visible skin pores, natural skin imperfections, "
+        f"realistic hair strands, subtle eye catchlight, unedited candid feel. "
+        f"NO airbrushing, NO plastic look, NO CGI, NO illustration, NO anime style — "
+        f"this must look like a real photograph of a real person. "
+        f"Identity seed [{name_seed}]: same face, hairstyle, and clothing across all emotion variants. "
+        f"Single subject, modest framing, no text, no watermarks, no logos, no captions. "
+        f"For professional counseling training material — dignified and authentic."
     )
 
 
@@ -401,7 +421,10 @@ async def _gen_one_image(
     prompt: str,
     size: str = "1024x1792",
 ) -> bytes:
-    """OpenAI 이미지 생성 1장 → JPEG bytes 반환 (PNG에 비해 ~10배 작음)."""
+    """OpenAI 이미지 생성 1장 → JPEG bytes 반환.
+
+    quality="hd" + JPEG q=92 4:4:4 chroma — DALL-E 3 최상 품질 + 압축 손실 최소화.
+    """
     r = await client.post(
         "https://api.openai.com/v1/images/generations",
         headers={
@@ -412,11 +435,11 @@ async def _gen_one_image(
             "model": settings.PORTRAIT_MODEL,
             "prompt": prompt,
             "size": size,
-            "quality": "standard",
+            "quality": "hd",  # 2배 비용, 더 사실적·세밀한 디테일
             "n": 1,
             "response_format": "b64_json",
         },
-        timeout=120.0,
+        timeout=180.0,
     )
     if r.status_code >= 400:
         raise RuntimeError(f"OpenAI {r.status_code}: {r.text[:200]}")
@@ -430,14 +453,15 @@ async def _gen_one_image(
             raise RuntimeError("OpenAI 응답에 이미지 데이터 없음")
         png_bytes = (await client.get(img_url)).content
 
-    # PNG → JPEG (q=88, progressive) 압축 — 저장·전송 최적화
+    # PNG → JPEG (q=92, 4:4:4 full chroma, progressive) — HD 화질 보존
     try:
         from PIL import Image
         from io import BytesIO
         with Image.open(BytesIO(png_bytes)) as im:
             im = im.convert("RGB")
             buf = BytesIO()
-            im.save(buf, "JPEG", quality=88, optimize=True, progressive=True)
+            # subsampling=0 → 4:4:4 (색상 해상도 풀, 미세 디테일 보존)
+            im.save(buf, "JPEG", quality=92, optimize=True, progressive=True, subsampling=0)
             return buf.getvalue()
     except Exception as e:
         logger.warning(f"JPEG 변환 실패, PNG 그대로 사용: {e}")

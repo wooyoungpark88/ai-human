@@ -35,17 +35,5 @@
   "avatar_type": "heygen",
   "heygen_avatar_id": "",
   "voice_id": null,
-  "face_id": null,
-  "portrait_url": "/api/portraits/burnout_beginner_neutral.jpg",
-  "portrait_variants": {
-    "neutral": "/api/portraits/burnout_beginner_neutral.jpg",
-    "happy": "/api/portraits/burnout_beginner_happy.jpg",
-    "sad": "/api/portraits/burnout_beginner_sad.jpg",
-    "angry": "/api/portraits/burnout_beginner_angry.jpg",
-    "surprised": "/api/portraits/burnout_beginner_surprised.jpg",
-    "thinking": "/api/portraits/burnout_beginner_thinking.jpg",
-    "anxious": "/api/portraits/burnout_beginner_anxious.jpg",
-    "empathetic": "/api/portraits/burnout_beginner_empathetic.jpg"
-  },
-  "portrait_prompt": "High-resolution photographic vertical portrait of a Korean woman, age 29, a IT 회사 개발자. compassionate soft eyes, slightly tilted head, warm understanding expression. Personality cue: 내성적이지만 책임감이 강하고, 자기 감정을 표현하는 데 서투릅니다. 다른 사람의 부탁을 거절하지 못합니다.. Same identity reference [burnout_beginner] — keep same hairstyle, facial structure, and clothing across all variants. Casual contemporary Korean attire, soft three-point studio lighting, neutral warm-toned indoor background, head-and-shoulders framing centered, realistic skin texture and natural pores, subtle catchlight in eyes. Documentary photo style, sharp focus on face, natural color grading, no text, no watermarks, no logos, single person only. Suitable for counseling training simulation — authentic and dignified."
+  "face_id": null
 }

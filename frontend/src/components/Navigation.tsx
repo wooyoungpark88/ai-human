@@ -8,7 +8,7 @@ export function Navigation() {
       className="sticky top-0 z-50 h-[54px] flex items-center px-4 sm:px-6 gap-2 sm:gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.14)]"
       style={{ background: "var(--tc-accent-dark)", color: "#F5E8D6" }}
     >
-      <Link href="/cases" className="flex items-center gap-2.5 no-underline text-inherit min-w-0">
+      <Link href="/" className="flex items-center gap-2.5 no-underline text-inherit min-w-0">
         <span
           className="w-7 h-7 rounded-md flex items-center justify-center text-[13px] font-black flex-shrink-0"
           style={{
@@ -33,15 +33,22 @@ export function Navigation() {
 
       <nav className="ml-2 sm:ml-6 flex items-center gap-1">
         <Link
-          href="/cases"
+          href="/cases/video"
           className="px-2.5 sm:px-3 py-1.5 rounded-md text-[12px] sm:text-[12.5px] font-medium transition-colors hover:bg-white/10 whitespace-nowrap"
           style={{ color: "#F5E8D6" }}
         >
-          케이스 탐색
+          영상 실습
+        </Link>
+        <Link
+          href="/cases/photo"
+          className="px-2.5 sm:px-3 py-1.5 rounded-md text-[12px] sm:text-[12.5px] font-medium transition-colors hover:bg-white/10 whitespace-nowrap"
+          style={{ color: "#F5E8D6" }}
+        >
+          케이스 라이브러리
         </Link>
         <Link
           href="/cases/new"
-          className="px-2.5 sm:px-3 py-1.5 rounded-md text-[12px] sm:text-[12.5px] font-medium transition-colors hover:bg-white/10 whitespace-nowrap hidden sm:inline-block"
+          className="px-2.5 sm:px-3 py-1.5 rounded-md text-[12px] sm:text-[12.5px] font-medium transition-colors hover:bg-white/10 whitespace-nowrap hidden md:inline-block"
           style={{ color: "#F5E8D6" }}
         >
           페르소나 빌더
