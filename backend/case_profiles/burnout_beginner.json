@@ -35,5 +35,16 @@
   "avatar_type": "heygen",
   "heygen_avatar_id": "",
   "voice_id": null,
-  "face_id": null
+  "face_id": null,
+  "portrait_url": "/api/portraits/burnout_beginner_neutral.jpg",
+  "portrait_variants": {
+    "neutral": "/api/portraits/burnout_beginner_neutral.jpg",
+    "happy": "/api/portraits/burnout_beginner_happy.jpg",
+    "sad": "/api/portraits/burnout_beginner_sad.jpg",
+    "angry": "/api/portraits/burnout_beginner_angry.jpg",
+    "surprised": "/api/portraits/burnout_beginner_surprised.jpg",
+    "thinking": "/api/portraits/burnout_beginner_thinking.jpg",
+    "anxious": "/api/portraits/burnout_beginner_anxious.jpg",
+    "empathetic": "/api/portraits/burnout_beginner_empathetic.jpg"
+  }
 }

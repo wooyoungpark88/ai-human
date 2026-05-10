@@ -36,5 +36,16 @@
   "avatar_type": "simli",
   "simli_face_id": "",
   "voice_id": null,
-  "face_id": null
+  "face_id": null,
+  "portrait_url": "/api/portraits/anxiety_beginner_neutral.jpg",
+  "portrait_variants": {
+    "neutral": "/api/portraits/anxiety_beginner_neutral.jpg",
+    "happy": "/api/portraits/anxiety_beginner_happy.jpg",
+    "sad": "/api/portraits/anxiety_beginner_sad.jpg",
+    "angry": "/api/portraits/anxiety_beginner_angry.jpg",
+    "surprised": "/api/portraits/anxiety_beginner_surprised.jpg",
+    "thinking": "/api/portraits/anxiety_beginner_thinking.jpg",
+    "anxious": "/api/portraits/anxiety_beginner_anxious.jpg",
+    "empathetic": "/api/portraits/anxiety_beginner_empathetic.jpg"
+  }
 }

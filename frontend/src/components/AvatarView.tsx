@@ -18,6 +18,9 @@ interface AvatarViewProps {
   audioRef?: React.RefObject<HTMLAudioElement | null>;
   // DeepBrain SDK 마운트 컨테이너
   containerRef?: React.RefObject<HTMLDivElement | null>;
+  // photo 모드 — currentEmotion에 매칭되는 정적 사진 URL (영상 X)
+  photoSrc?: string | null;
+  photoName?: string;
   // Common props
   isLoading?: boolean;
   isInitialized?: boolean;
@@ -33,10 +36,13 @@ export function AvatarView({
   videoRef,
   audioRef,
   containerRef,
+  photoSrc,
+  photoName,
   isLoading = false,
   isInitialized = false,
   error,
   currentEmotion = "neutral",
+  emotionIntensity = 0.5,
 }: AvatarViewProps) {
   const glowClass = EMOTION_GLOW[currentEmotion] ?? EMOTION_GLOW.neutral;
   const borderClass = EMOTION_BORDER[currentEmotion] ?? EMOTION_BORDER.neutral;
@@ -57,11 +63,51 @@ export function AvatarView({
 
   return (
     <Card
-      className={`relative overflow-hidden bg-black aspect-video w-full max-w-2xl mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
+      className={`relative overflow-hidden bg-black w-full ${
+        avatarType === "photo"
+          ? "max-w-md aspect-[4/5]"
+          : "max-w-2xl aspect-video"
+      } mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
     >
       {/* VRM 아바타 */}
       {avatarType === "vrm" && isInitialized && vrm && controllers && (
         <VRMScene vrm={vrm} controllers={controllers} isLoading={isLoading} />
+      )}
+
+      {/* photo 모드 — 영상 없이 currentEmotion 사진 표시 */}
+      {avatarType === "photo" && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+          {photoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={photoSrc}
+              src={photoSrc}
+              alt={photoName || "내담자"}
+              className="w-full h-full object-cover transition-opacity duration-700"
+              style={{ opacity: 0.85 + emotionIntensity * 0.15 }}
+            />
+          ) : (
+            <div className="text-center px-4" style={{ color: "rgba(255,255,255,0.6)" }}>
+              <div className="text-[56px] leading-none mb-2">🖼️</div>
+              <p className="text-sm">초상화 미설정</p>
+              <p className="text-xs opacity-60 mt-1">
+                portraits/{`{case_id}_{emotion}.jpg`} 형식으로 추가하세요
+              </p>
+            </div>
+          )}
+          {/* 감정 라벨 오버레이 */}
+          {photoSrc && isInitialized && (
+            <div
+              className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full text-[11.5px] font-bold backdrop-blur-md"
+              style={{
+                background: "rgba(255, 246, 234, 0.85)",
+                color: "var(--tc-accent-deep)",
+              }}
+            >
+              {currentEmotion} · {Math.round(emotionIntensity * 100)}%
+            </div>
+          )}
+        </div>
       )}
 
       {/* HeyGen Interactive Avatar — video/audio는 initialize() 전에 DOM에 마운트 필요 */}

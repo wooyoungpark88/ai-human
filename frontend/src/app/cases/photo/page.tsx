@@ -3,26 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
-import { LegacyCaseCard } from "@/components/LegacyCaseCard";
-import { API_URL, CATEGORY_LABELS } from "@/lib/constants";
+import { CaseCard } from "@/components/CaseCard";
+import { API_URL } from "@/lib/constants";
 import type { CaseInfo } from "@/lib/types";
-
-const VIDEO_CASE_IDS = ["relationship_intermediate", "deepbrain_demo"];
-
-const ALL_CATEGORIES = ["all", ...Object.keys(CATEGORY_LABELS)];
-const ALL_DIFFICULTIES = ["all", "beginner", "intermediate", "advanced"];
-const DIFFICULTY_LABEL_MAP: Record<string, string> = {
-  all: "전체",
-  beginner: "초급",
-  intermediate: "중급",
-  advanced: "고급",
-};
 
 export default function PhotoCasesPage() {
   const [cases, setCases] = useState<CaseInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("all");
 
   useEffect(() => {
     async function loadCases() {
@@ -30,8 +17,8 @@ export default function PhotoCasesPage() {
         const res = await fetch(`${API_URL}/api/cases`);
         const json = await res.json();
         if (json.cases) {
-          // 영상 모드 케이스 제외 = 사진/텍스트 모드 케이스
-          setCases(json.cases.filter((c: CaseInfo) => !VIDEO_CASE_IDS.includes(c.id)));
+          // 사진 모드 = avatar_type === "photo" 만
+          setCases(json.cases.filter((c: CaseInfo) => c.avatar_type === "photo"));
         }
       } catch (err) {
         console.warn("케이스 목록 로드 실패:", err);
@@ -41,12 +28,6 @@ export default function PhotoCasesPage() {
     }
     loadCases();
   }, []);
-
-  const filteredCases = cases.filter((c) => {
-    if (selectedCategory !== "all" && c.category !== selectedCategory) return false;
-    if (selectedDifficulty !== "all" && c.difficulty !== selectedDifficulty) return false;
-    return true;
-  });
 
   return (
     <div className="min-h-screen" style={{ background: "var(--tc-bg)" }}>
@@ -70,8 +51,9 @@ export default function PhotoCasesPage() {
               className="text-[12.5px] sm:text-[13px] mt-1.5 max-w-[780px] leading-relaxed"
               style={{ color: "var(--tc-text-sec)" }}
             >
-              초상화 사진 없이 표준 카드로 표시되는 케이스 라이브러리. 영상 AI 휴먼이 연동되어 있어도
-              정적 사진은 표시하지 않으며, 대화 흐름과 감정 평가에 집중합니다.
+              실시간 영상 AI 휴먼 없이, 내담자 감정에 따라 표정이 변하는{" "}
+              <strong>정적 초상화</strong>로 진행하는 상담 실습. 음성·텍스트 대화는 동일하게
+              지원되며, 표정 변화와 감정 흐름 관찰에 집중합니다.
             </p>
           </div>
           <Link
@@ -84,81 +66,18 @@ export default function PhotoCasesPage() {
           </Link>
         </div>
 
-        <div
-          className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-5 sm:mb-6 p-3 sm:p-4 rounded-[14px] border"
-          style={{ background: "var(--tc-card-white)", borderColor: "var(--tc-border)" }}
-        >
-          <div className="flex items-start sm:items-center gap-2 flex-wrap">
-            <span
-              className="text-[10px] font-bold tracking-[0.16em] uppercase pt-1.5 sm:pt-0 flex-shrink-0"
-              style={{ color: "var(--tc-text-muted)" }}
-            >
-              카테고리
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {ALL_CATEGORIES.map((cat) => {
-                const active = selectedCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className="px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors"
-                    style={{
-                      background: active ? "var(--tc-accent-dark)" : "var(--tc-soft-bg)",
-                      color: active ? "#fff" : "var(--tc-text-sec)",
-                      border: `1px solid ${active ? "var(--tc-accent-dark)" : "var(--tc-border)"}`,
-                    }}
-                  >
-                    {cat === "all" ? "전체" : CATEGORY_LABELS[cat] || cat}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div
-            className="flex items-start sm:items-center gap-2 flex-wrap pt-3 sm:pt-0 sm:pl-3 sm:ml-1 border-t sm:border-t-0 sm:border-l"
-            style={{ borderColor: "var(--tc-border)" }}
-          >
-            <span
-              className="text-[10px] font-bold tracking-[0.16em] uppercase pt-1.5 sm:pt-0 flex-shrink-0"
-              style={{ color: "var(--tc-text-muted)" }}
-            >
-              난이도
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {ALL_DIFFICULTIES.map((diff) => {
-                const active = selectedDifficulty === diff;
-                return (
-                  <button
-                    key={diff}
-                    onClick={() => setSelectedDifficulty(diff)}
-                    className="px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors"
-                    style={{
-                      background: active ? "var(--tc-accent-dark)" : "var(--tc-soft-bg)",
-                      color: active ? "#fff" : "var(--tc-text-sec)",
-                      border: `1px solid ${active ? "var(--tc-accent-dark)" : "var(--tc-border)"}`,
-                    }}
-                  >
-                    {DIFFICULTY_LABEL_MAP[diff]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
         {loading ? (
           <div className="text-center py-16 text-[13px]" style={{ color: "var(--tc-text-sec)" }}>
             케이스 로딩 중...
           </div>
-        ) : filteredCases.length === 0 ? (
+        ) : cases.length === 0 ? (
           <div className="text-center py-16 text-[13px]" style={{ color: "var(--tc-text-sec)" }}>
-            조건에 맞는 케이스가 없습니다.
+            사진 모드 케이스가 없습니다.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCases.map((c) => (
-              <LegacyCaseCard key={c.id} caseInfo={c} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+            {cases.map((c) => (
+              <CaseCard key={c.id} caseInfo={c} />
             ))}
           </div>
         )}

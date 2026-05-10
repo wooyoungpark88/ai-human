@@ -55,8 +55,8 @@ export type ConnectionStatus =
   | "connected"
   | "error";
 
-/** 아바타 타입 */
-export type AvatarType = "vrm" | "simli" | "flashhead" | "deepbrain" | "heygen";
+/** 아바타 타입 — "photo"는 영상 없이 portrait_variants만 사용 (감정 따라 사진 변경) */
+export type AvatarType = "vrm" | "simli" | "flashhead" | "deepbrain" | "heygen" | "photo";
 
 /** 내담자 케이스 정보 */
 export interface CaseInfo {

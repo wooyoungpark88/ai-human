@@ -72,6 +72,19 @@ export default function SessionPage() {
 
   // 활성 아바타 선택
   const avatar = useMemo(() => {
+    if (avatarType === "photo") {
+      // 영상 훅 호출 X — 정적 사진만 표시. 세션은 즉시 활성화 가능.
+      return {
+        isInitialized: true,
+        isLoading: false,
+        error: null,
+        initialize: async () => {},
+        sendBase64Audio: (_b64: string) => {},
+        setEmotion: () => {},
+        setConversationPhase: () => {},
+        close: () => {},
+      };
+    }
     if (avatarType === "heygen") {
       return {
         isInitialized: heygenAvatar.isInitialized,
@@ -483,6 +496,17 @@ export default function SessionPage() {
                   : undefined
             }
             containerRef={avatarType === "deepbrain" ? deepbrainAvatar.containerRef : undefined}
+            photoSrc={
+              avatarType === "photo" && caseInfo
+                ? (() => {
+                    const v = caseInfo.portrait_variants;
+                    const url =
+                      v?.[currentEmotion] || v?.neutral || caseInfo.portrait_url;
+                    return url ? `${API_URL}${url}` : null;
+                  })()
+                : undefined
+            }
+            photoName={caseInfo?.name}
             isLoading={avatar.isLoading}
             isInitialized={avatar.isInitialized}
             error={avatar.error}

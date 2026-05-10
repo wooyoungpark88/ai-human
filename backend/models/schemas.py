@@ -66,7 +66,7 @@ class ClientProfile(BaseModel):
     voice_id: Optional[str] = None
 
 
-AvatarType = Literal["vrm", "simli", "flashhead", "deepbrain", "heygen"]
+AvatarType = Literal["vrm", "simli", "flashhead", "deepbrain", "heygen", "photo"]
 
 
 class ClinicalInfo(BaseModel):

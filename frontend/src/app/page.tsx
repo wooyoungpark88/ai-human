@@ -76,12 +76,15 @@ export default function HomePage() {
                 className="text-[13px] leading-relaxed mb-3"
                 style={{ color: "var(--tc-text)" }}
               >
-                실제로 움직이고 말하는 AI 휴먼과 음성·텍스트로 상담합니다. VRM·DeepBrain Web SDK 등
-                실시간 립싱크·표정 엔진과 연동됩니다.
+                실제로 움직이고 말하는 AI 휴먼과 음성·텍스트로 상담합니다. Simli·HeyGen·DeepBrain
+                Web SDK·VRM·OpenAvatarChat 등 5종 실시간 엔진과 연동된 5개 케이스.
               </p>
               <div className="flex flex-wrap gap-1.5 mb-4">
-                <span className="tc-tag tc-tag-cream">박지영 (15세)</span>
-                <span className="tc-tag tc-tag-cream">한지유 (29세)</span>
+                <span className="tc-tag tc-tag-cream">이준호</span>
+                <span className="tc-tag tc-tag-cream">김서연</span>
+                <span className="tc-tag tc-tag-cream">박지영</span>
+                <span className="tc-tag tc-tag-cream">한지유</span>
+                <span className="tc-tag tc-tag-cream">오은정</span>
               </div>
               <div
                 className="flex items-center justify-between text-[12px] font-semibold"
@@ -141,19 +144,19 @@ export default function HomePage() {
                 className="text-[13px] leading-relaxed mb-3"
                 style={{ color: "var(--tc-text)" }}
               >
-                초상화 사진 없이 표준 텍스트 카드로 표시되는 케이스 라이브러리. 영상 AI 휴먼이
-                연동되어 있어도 정적 사진은 표시하지 않으며, 대화·감정 평가 위주로 진행합니다.
+                실시간 영상 휴먼 없이, 내담자의 감정 변화에 따라 표정이 바뀌는{" "}
+                <strong>정적 초상화</strong>로 상담합니다. 음성·텍스트 대화는 동일하게 지원되며
+                감정 흐름 관찰에 집중하는 모드.
               </p>
               <div className="flex flex-wrap gap-1.5 mb-4">
-                <span className="tc-tag tc-tag-gray">이준호</span>
-                <span className="tc-tag tc-tag-gray">김서연</span>
-                <span className="tc-tag tc-tag-gray">오은정</span>
+                <span className="tc-tag tc-tag-cream">박지영 (사진 모드)</span>
+                <span className="tc-tag tc-tag-cream">한지유 (사진 모드)</span>
               </div>
               <div
                 className="flex items-center justify-between text-[12px] font-semibold"
                 style={{ color: "var(--tc-text-sec)" }}
               >
-                <span>케이스 라이브러리 열기</span>
+                <span>사진 모드 실습 시작</span>
                 <span className="text-[16px] transition-transform group-hover:translate-x-1">→</span>
               </div>
             </div>

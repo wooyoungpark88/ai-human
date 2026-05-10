@@ -7,7 +7,10 @@ import { CaseCard } from "@/components/CaseCard";
 import { API_URL, CATEGORY_LABELS } from "@/lib/constants";
 import type { CaseInfo } from "@/lib/types";
 
-const VIDEO_CASE_IDS = ["relationship_intermediate", "deepbrain_demo"];
+// 영상 AI 휴먼 모드 = avatar_type이 "photo"가 아닌 모든 케이스
+// (이준호 simli, 김서연 heygen, 박지영 vrm, 한지유 deepbrain, 오은정 flashhead)
+const isVideoCase = (avatar_type?: string) =>
+  !!avatar_type && avatar_type !== "photo";
 
 const ALL_CATEGORIES = ["all", ...Object.keys(CATEGORY_LABELS)];
 const ALL_DIFFICULTIES = ["all", "beginner", "intermediate", "advanced"];
@@ -30,8 +33,8 @@ export default function VideoCasesPage() {
         const res = await fetch(`${API_URL}/api/cases`);
         const json = await res.json();
         if (json.cases) {
-          // 영상 AI 휴먼 케이스만 필터
-          setCases(json.cases.filter((c: CaseInfo) => VIDEO_CASE_IDS.includes(c.id)));
+          // photo 모드 제외 = 영상 AI 휴먼이 연동된 모든 케이스
+          setCases(json.cases.filter((c: CaseInfo) => isVideoCase(c.avatar_type)));
         }
       } catch (err) {
         console.warn("케이스 목록 로드 실패:", err);
