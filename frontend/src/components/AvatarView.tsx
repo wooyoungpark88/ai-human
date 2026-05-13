@@ -65,7 +65,7 @@ export function AvatarView({
     <Card
       className={`relative overflow-hidden bg-black w-full ${
         avatarType === "photo"
-          ? "max-w-md aspect-[4/5]"
+          ? "max-w-sm aspect-[3/4]"
           : "max-w-2xl aspect-video"
       } mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
     >
@@ -84,7 +84,10 @@ export function AvatarView({
               src={photoSrc}
               alt={photoName || "내담자"}
               className="w-full h-full object-cover transition-opacity duration-700"
-              style={{ opacity: 0.85 + emotionIntensity * 0.15 }}
+              style={{
+                opacity: 0.85 + emotionIntensity * 0.15,
+                objectPosition: "center top",  // 얼굴(상단) 보존, 비율 다를 때 하단만 trim
+              }}
             />
           ) : (
             <div className="text-center px-4" style={{ color: "rgba(255,255,255,0.6)" }}>
