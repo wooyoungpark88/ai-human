@@ -576,7 +576,11 @@ async def generate_portrait(request: GeneratePortraitRequest):
 
 @app.get("/api/portraits/{filename}")
 async def serve_portrait(filename: str):
-    """저장된 초상화 이미지 서빙 — path traversal 방지 위해 파일명 정규식 검증."""
+    """저장된 초상화 이미지 서빙 — path traversal 방지 위해 파일명 정규식 검증.
+
+    파일 mtime을 ETag로 사용 + Cache-Control no-cache, must-revalidate.
+    이미지 교체 시 브라우저가 304 검증 후 새 파일을 받음.
+    """
     from fastapi.responses import FileResponse, JSONResponse
     if not re.match(r"^[a-zA-Z0-9_\-]{1,60}\.(png|jpg|jpeg|webp)$", filename):
         return JSONResponse({"error": "잘못된 파일명"}, status_code=400)
@@ -590,7 +594,17 @@ async def serve_portrait(filename: str):
         "jpeg": "image/jpeg",
         "webp": "image/webp",
     }.get(ext, "application/octet-stream")
-    return FileResponse(target, media_type=media)
+    # mtime 기반 ETag — 파일 교체 시 자동으로 새 ETag → 브라우저 강제 갱신
+    stat = target.stat()
+    etag = f'W/"{int(stat.st_mtime)}-{stat.st_size}"'
+    return FileResponse(
+        target,
+        media_type=media,
+        headers={
+            "Cache-Control": "no-cache, must-revalidate, max-age=0",
+            "ETag": etag,
+        },
+    )
 
 
 _VALID_ID = re.compile(r"^[a-z0-9_]{2,40}$")
