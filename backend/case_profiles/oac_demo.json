@@ -16,9 +16,10 @@
   "emotional_baseline": "neutral",
   "resistance_level": 0.0,
   "session_goals": [
-    "로컬 GPU 실시간 한국어 대화 품질 체험",
-    "FlashHead 립싱크/표정 자연스러움 평가",
-    "Simli/BP 대비 응답 지연·자연도 비교"
+    "첫 인사를 자연스럽게 트며 라포 형성하기",
+    "내담자가 편안하게 자기 이야기를 꺼내도록 안전한 분위기 조성하기",
+    "감정 단어를 정확히 명명하고 반영하기",
+    "성급한 진단·조언 없이 내담자 페이스에 맞추기"
   ],
   "system_prompt": "(OAC 사이드카가 자체 system_prompt를 사용하므로 본 필드는 미사용)",
   "avatar_type": "flashhead",
