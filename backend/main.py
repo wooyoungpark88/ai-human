@@ -31,6 +31,36 @@ CASE_PROFILES_DIR = Path(__file__).resolve().parent / "case_profiles"
 PORTRAITS_DIR = Path(__file__).resolve().parent / "portraits"
 PORTRAITS_DIR.mkdir(exist_ok=True)
 
+
+def _bust_portrait_url(url: str | None) -> str | None:
+    """portrait URL에 파일 mtime을 cache-buster로 박아 브라우저 강제 갱신.
+
+    `/api/portraits/foo.jpg` → `/api/portraits/foo.jpg?v=<mtime>`
+    파일 교체 시마다 URL이 달라져 브라우저는 새 리소스로 인식.
+    """
+    if not url or not isinstance(url, str):
+        return url
+    # 이미 쿼리 있으면 제거 (저장된 mtime이 stale일 수 있어서)
+    base = url.split("?", 1)[0]
+    if not base.startswith("/api/portraits/"):
+        return url
+    filename = base[len("/api/portraits/"):]
+    target = PORTRAITS_DIR / filename
+    if not target.exists():
+        return base  # 파일 없으면 그냥 베이스 URL
+    mtime = int(target.stat().st_mtime)
+    return f"{base}?v={mtime}"
+
+
+def _bust_case_portraits(data: dict) -> dict:
+    """case 데이터의 portrait_url + portrait_variants에 cache-buster 적용 (in-place)."""
+    if "portrait_url" in data:
+        data["portrait_url"] = _bust_portrait_url(data.get("portrait_url"))
+    pv = data.get("portrait_variants")
+    if isinstance(pv, dict):
+        data["portrait_variants"] = {k: _bust_portrait_url(v) for k, v in pv.items()}
+    return data
+
 # 로깅 설정
 logging.basicConfig(
     level=logging.INFO,
@@ -136,8 +166,11 @@ async def list_cases():
                 "deepbrain_avatar_id": data.get("deepbrain_avatar_id", ""),
                 "heygen_avatar_id": data.get("heygen_avatar_id", ""),
                 "external_url": data.get("external_url", ""),
-                "portrait_url": data.get("portrait_url", ""),
-                "portrait_variants": data.get("portrait_variants") or {},
+                "portrait_url": _bust_portrait_url(data.get("portrait_url", "")),
+                "portrait_variants": {
+                    k: _bust_portrait_url(v)
+                    for k, v in (data.get("portrait_variants") or {}).items()
+                },
             })
     return {"cases": cases}
 
@@ -156,6 +189,8 @@ async def get_case_detail(case_id: str, include_internal: bool = False):
         # 훈련 중에는 정답·내부 데이터 노출 금지
         data.pop("system_prompt", None)
         data.pop("hidden_issues", None)
+    # portrait URL에 cache-buster (?v=mtime) 적용
+    _bust_case_portraits(data)
     return data
 
 
