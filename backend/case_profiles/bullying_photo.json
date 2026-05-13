@@ -42,7 +42,6 @@
     "neutral": "/api/portraits/relationship_intermediate_neutral.jpg",
     "happy": "/api/portraits/relationship_intermediate_happy.jpg",
     "sad": "/api/portraits/relationship_intermediate_sad.jpg",
-    "angry": "/api/portraits/relationship_intermediate_angry.jpg",
     "surprised": "/api/portraits/relationship_intermediate_surprised.jpg",
     "thinking": "/api/portraits/relationship_intermediate_thinking.jpg",
     "anxious": "/api/portraits/relationship_intermediate_anxious.jpg",

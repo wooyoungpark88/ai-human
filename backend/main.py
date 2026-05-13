@@ -361,50 +361,64 @@ _EMOTION_HINTS = {
 
 
 def _build_portrait_prompt(persona: dict, emotion: str = "neutral") -> str:
-    """페르소나 데이터 + 감정으로 DALL-E 프롬프트 생성.
+    """페르소나 + 감정 → Flux 1.1 Pro Ultra용 자연어 prompt.
 
-    한국인 실사 사실주의 사진 — 다큐멘터리 카메라 표현으로 진짜 사람 톤 강화.
-    동일 인물 일관성을 위해 시드(case_id) + 외모 단서 고정.
+    Flux는 키워드 나열보다 문장형 묘사에 강함. 다큐 톤·인물 묘사·환경을 자연스러운
+    영어 문단으로 구성하고 마지막에 부정 단서(NO 시리즈) 추가.
     """
     age = persona.get("age", 30)
     gender_raw = persona.get("gender", "여성")
     gender_en = "woman" if gender_raw == "여성" else "man" if gender_raw == "남성" else "person"
     occupation = (persona.get("occupation") or "office worker").replace("\n", " ")[:120]
-    personality = (persona.get("personality") or "").replace("\n", " ")[:160]
+    personality = (persona.get("personality") or "").replace("\n", " ")[:140]
     name_seed = persona.get("id") or persona.get("name") or "subject"
 
     emotion_hint = _EMOTION_HINTS.get(emotion, _EMOTION_HINTS["neutral"])
 
-    # 연령대별 한국인 외모 단서 — 일관성·사실성 강화
+    # 미성년자 안전 톤 — Flux도 일부 케이스 차단 가능 → 문맥 안전화
     if age < 20:
-        age_band = "Korean teenager, fresh youthful face, school-age"
+        subject = (
+            f"a Korean high school student, age {age}, dressed in a modest school uniform "
+            f"(white blouse with navy cardigan or simple hoodie)"
+        )
+        styling = "natural teenage face, no makeup, neutral hairstyle"
+        scene = "soft daylight in a school library or classroom corner, warm muted interior"
     elif age < 30:
-        age_band = "young Korean adult in their twenties, clear smooth skin"
+        subject = (
+            f"a young Korean {gender_en} in their twenties, age {age}, "
+            f"working as a {occupation}"
+        )
+        styling = "clear natural skin, subtle minimal makeup if applicable, contemporary Korean office casual or smart casual outfit"
+        scene = "soft window light in a neutral modern interior, gentle warm-toned background"
     elif age < 40:
-        age_band = "Korean adult in their thirties, mature confident face"
+        subject = f"a Korean {gender_en} in their thirties, age {age}, working as a {occupation}"
+        styling = "mature confident face, natural skin texture, refined Korean styling"
+        scene = "soft natural light in a calm professional setting, neutral warm background"
     elif age < 50:
-        age_band = "Korean adult in their forties, subtle expression lines"
+        subject = f"a Korean {gender_en} in their forties, age {age}, working as a {occupation}"
+        styling = "subtle expression lines, natural mature skin, simple Korean styling"
+        scene = "soft diffused daylight in a quiet home or office interior"
     else:
-        age_band = "middle-aged Korean adult, natural age signs around eyes"
+        subject = f"a middle-aged Korean {gender_en}, age {age}, working as a {occupation}"
+        styling = "natural age signs around the eyes, soft skin texture, dignified styling"
+        scene = "warm window light in a calm interior with muted neutral background"
 
     return (
-        f"Hyper-realistic documentary photograph, vertical portrait of a real Korean {gender_en}, "
-        f"age {age}. {age_band}. Working as a {occupation}. "
-        f"{emotion_hint}. "
-        f"Authentic East Asian facial features: warm ivory skin tone with natural undertones, "
-        f"naturally proportioned face, dark brown or black hair, "
-        f"almond-shaped eyes with monolid or natural double eyelid, "
-        f"realistic Korean styling — natural minimal makeup if applicable, contemporary K-fashion. "
-        f"Personality conveyed through expression: {personality}. "
-        f"Shot on Canon EOS R5 with 50mm f/1.8 lens, soft natural window light, "
-        f"shallow depth of field, neutral warm-toned indoor background, head-and-shoulders framing. "
-        f"Photographic realism: visible skin pores, natural skin imperfections, "
-        f"realistic hair strands, subtle eye catchlight, unedited candid feel. "
-        f"NO airbrushing, NO plastic look, NO CGI, NO illustration, NO anime style — "
-        f"this must look like a real photograph of a real person. "
-        f"Identity seed [{name_seed}]: same face, hairstyle, and clothing across all emotion variants. "
-        f"Single subject, modest framing, no text, no watermarks, no logos, no captions. "
-        f"For professional counseling training material — dignified and authentic."
+        f"A hyper-realistic candid documentary portrait photograph of {subject}. "
+        f"The face shows {emotion_hint}. "
+        f"Authentic East Asian features: warm ivory skin with natural undertones, naturally proportioned face, "
+        f"dark brown or black hair, almond-shaped eyes (monolid or subtle natural double eyelid). "
+        f"{styling}. The mood reflects: {personality}. "
+        f"Lit by {scene}. Shot on a full-frame mirrorless camera with an 85mm f/1.8 lens at eye level, "
+        f"shallow depth of field, head and shoulders framing in a 4:5 vertical composition, subject centered, "
+        f"looking gently toward camera. "
+        f"Skin is unretouched with visible pores and tiny natural imperfections, individual hair strands sharp, "
+        f"subtle warm catchlight in the eyes. The image has a real, unedited, journalistic feel — "
+        f"as if shot for a long-form magazine feature on everyday Korean people. "
+        f"Identity reference [{name_seed}] — the same face, hairstyle and outfit should appear across all emotion variants of this subject. "
+        f"Absolutely no airbrushing, no plastic skin, no CGI rendering, no illustration, no anime, no stylized art — "
+        f"this must look indistinguishable from a real photograph of a real person. "
+        f"No text, no watermarks, no logos, single subject only."
     )
 
 
@@ -419,53 +433,74 @@ class GeneratePortraitRequest(PydanticBaseModel):
 async def _gen_one_image(
     client: httpx.AsyncClient,
     prompt: str,
-    size: str = "1024x1792",
+    size: str = "1024x1792",  # legacy 호환 — Flux는 aspect_ratio로 결정
 ) -> bytes:
-    """OpenAI 이미지 생성 1장 → JPEG bytes 반환.
+    """Replicate Flux 1.1 Pro Ultra로 1장 생성 → JPEG bytes 반환.
 
-    quality="hd" + JPEG q=92 4:4:4 chroma — DALL-E 3 최상 품질 + 압축 손실 최소화.
+    DALL-E 3 HD 대비 사실성 우위. raw=true로 다큐 사진 톤.
+    4:5 portrait aspect로 우리 카드 비율과 일치.
+    Replicate `Prefer: wait` 헤더로 동기 응답 받음 (polling 불필요).
     """
+    if not settings.REPLICATE_API_TOKEN:
+        raise RuntimeError("REPLICATE_API_TOKEN 미설정")
+
+    # Flux 1.1 Pro Ultra predictions endpoint (모델별 전용 경로)
+    url = f"https://api.replicate.com/v1/models/{settings.REPLICATE_PORTRAIT_MODEL}/predictions"
     r = await client.post(
-        "https://api.openai.com/v1/images/generations",
+        url,
         headers={
-            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Authorization": f"Bearer {settings.REPLICATE_API_TOKEN}",
             "Content-Type": "application/json",
+            "Prefer": "wait=180",  # 최대 180초 동기 대기 (Flux Ultra는 ~10-20초)
         },
         json={
-            "model": settings.PORTRAIT_MODEL,
-            "prompt": prompt,
-            "size": size,
-            "quality": "hd",  # 2배 비용, 더 사실적·세밀한 디테일
-            "n": 1,
-            "response_format": "b64_json",
+            "input": {
+                "prompt": prompt,
+                "aspect_ratio": "4:5",
+                "raw": True,                   # 다큐 사실 톤 (스튜디오·미화 톤 OFF)
+                "output_format": "jpg",
+                "output_quality": 92,
+                "safety_tolerance": 6,         # 0(strict)~6(permissive) — 미성년자 케이스 대응
+            }
         },
-        timeout=180.0,
+        timeout=240.0,
     )
     if r.status_code >= 400:
-        raise RuntimeError(f"OpenAI {r.status_code}: {r.text[:200]}")
-    data = r.json()
-    b64 = data["data"][0].get("b64_json")
-    if b64:
-        png_bytes = base64.b64decode(b64)
-    else:
-        img_url = data["data"][0].get("url")
-        if not img_url:
-            raise RuntimeError("OpenAI 응답에 이미지 데이터 없음")
-        png_bytes = (await client.get(img_url)).content
+        raise RuntimeError(f"Replicate {r.status_code}: {r.text[:300]}")
 
-    # PNG → JPEG (q=92, 4:4:4 full chroma, progressive) — HD 화질 보존
-    try:
-        from PIL import Image
-        from io import BytesIO
-        with Image.open(BytesIO(png_bytes)) as im:
-            im = im.convert("RGB")
-            buf = BytesIO()
-            # subsampling=0 → 4:4:4 (색상 해상도 풀, 미세 디테일 보존)
-            im.save(buf, "JPEG", quality=92, optimize=True, progressive=True, subsampling=0)
-            return buf.getvalue()
-    except Exception as e:
-        logger.warning(f"JPEG 변환 실패, PNG 그대로 사용: {e}")
-        return png_bytes
+    data = r.json()
+    status = data.get("status")
+    if status not in ("succeeded", "processing", "starting"):
+        err = data.get("error") or data.get("detail") or "unknown"
+        raise RuntimeError(f"Replicate status={status}: {str(err)[:200]}")
+
+    # output: 모델별로 URL 문자열 또는 [URL] 리스트
+    output = data.get("output")
+    if status != "succeeded":
+        # wait 시간 내 미완료 → poll
+        get_url = data.get("urls", {}).get("get")
+        if not get_url:
+            raise RuntimeError("Replicate prediction URL 없음")
+        for _ in range(30):
+            await asyncio.sleep(2.0)
+            poll = await client.get(get_url, headers={"Authorization": f"Bearer {settings.REPLICATE_API_TOKEN}"})
+            pdata = poll.json()
+            if pdata.get("status") == "succeeded":
+                output = pdata.get("output")
+                break
+            if pdata.get("status") in ("failed", "canceled"):
+                raise RuntimeError(f"Replicate {pdata.get('status')}: {pdata.get('error')}")
+        else:
+            raise RuntimeError("Replicate polling timeout")
+
+    img_url = output[0] if isinstance(output, list) else output
+    if not img_url:
+        raise RuntimeError("Replicate output 비어있음")
+
+    img_resp = await client.get(img_url, timeout=60.0)
+    if img_resp.status_code >= 400:
+        raise RuntimeError(f"Replicate 이미지 다운로드 실패: {img_resp.status_code}")
+    return img_resp.content  # Flux는 JPEG로 직접 반환 — Pillow 변환 불필요
 
 
 @app.post("/api/cases/generate-portrait")
