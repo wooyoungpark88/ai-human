@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
 import { API_URL, CATEGORY_LABELS } from "@/lib/constants";
 import type { PersonaDraft, AvatarType } from "@/lib/types";
+
+/* ============ 비밀번호 게이트 ============ */
+const BUILDER_PASSWORD = "qwer11!!";
+const UNLOCK_STORAGE_KEY = "persona-builder-unlocked";
 
 /* ============ 초기값 ============ */
 const INITIAL_PERSONA: PersonaDraft = {
@@ -78,11 +82,25 @@ const RISK_LABELS = ["없음", "수동적 사고", "계획 단계", "즉시 위�
 
 /* ============ 빌더 페이지 ============ */
 export default function NewPersonaPage() {
+  // 비밀번호 게이트 — sessionStorage 기반 (탭 닫으면 재인증)
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);  // null = 초기 SSR 일관성용
+  useEffect(() => {
+    setUnlocked(sessionStorage.getItem(UNLOCK_STORAGE_KEY) === "1");
+  }, []);
+
   const router = useRouter();
   const [step, setStep] = useState<number>(0);
   const [persona, setPersona] = useState<PersonaDraft>(INITIAL_PERSONA);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+
+  if (unlocked === null) {
+    // SSR/하이드레이션 단계 — 빈 화면 (깜빡임 방지)
+    return <div className="min-h-screen" style={{ background: "var(--tc-bg)" }} />;
+  }
+  if (!unlocked) {
+    return <BuilderLockScreen onUnlock={() => setUnlocked(true)} />;
+  }
 
   const update = <K extends keyof PersonaDraft>(key: K, value: PersonaDraft[K]) =>
     setPersona((p) => ({ ...p, [key]: value }));
@@ -1617,4 +1635,112 @@ function computeCompletion(p: PersonaDraft): number {
   ];
   const ratio = checks.filter(Boolean).length / checks.length;
   return Math.round(ratio * 100);
+}
+
+/* ============ 잠금 화면 (페르소나 빌더 접근 게이트) ============ */
+function BuilderLockScreen({ onUnlock }: { onUnlock: () => void }) {
+  const [pw, setPw] = useState("");
+  const [error, setError] = useState("");
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw === BUILDER_PASSWORD) {
+      sessionStorage.setItem(UNLOCK_STORAGE_KEY, "1");
+      onUnlock();
+    } else {
+      setError("비밀번호가 일치하지 않습니다.");
+      setPw("");
+    }
+  };
+
+  return (
+    <div className="min-h-screen" style={{ background: "var(--tc-bg)" }}>
+      <Navigation />
+      <main className="max-w-md mx-auto px-4 py-16 sm:py-24">
+        <div
+          className="rounded-[18px] border p-8 sm:p-10 text-center"
+          style={{
+            background: "var(--tc-card-white)",
+            borderColor: "var(--tc-border)",
+            boxShadow: "0 8px 24px rgba(60,40,23,0.08)",
+          }}
+        >
+          <div
+            className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--tc-accent-dark) 0%, var(--tc-accent) 100%)",
+            }}
+          >
+            <span className="text-[28px]">🔒</span>
+          </div>
+          <h1
+            className="tc-page-h text-[20px] sm:text-[22px] mb-2"
+            style={{ color: "var(--tc-accent-dark)" }}
+          >
+            페르소나 빌더 접근
+          </h1>
+          <p
+            className="text-[12.5px] mb-6 leading-relaxed"
+            style={{ color: "var(--tc-text-sec)" }}
+          >
+            관리자 영역입니다. 비밀번호를 입력하세요.
+          </p>
+
+          <form onSubmit={submit} className="space-y-3 text-left">
+            <input
+              type="password"
+              value={pw}
+              onChange={(e) => {
+                setPw(e.target.value);
+                if (error) setError("");
+              }}
+              placeholder="비밀번호"
+              autoFocus
+              className="w-full px-4 py-3 rounded-md text-[13.5px] outline-none transition-colors focus:border-[var(--tc-accent-light)]"
+              style={{
+                border: "1.5px solid var(--tc-border)",
+                background: "#fff",
+                color: "var(--tc-text)",
+              }}
+            />
+            {error && (
+              <p
+                className="text-[12px] text-center"
+                style={{ color: "var(--tc-red)" }}
+              >
+                {error}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={!pw}
+              className="w-full px-5 py-3 rounded-full text-[13.5px] font-bold transition-opacity hover:opacity-95 disabled:opacity-40 shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
+              style={{
+                background: "var(--tc-accent-dark)",
+                color: "#fff",
+                fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+              }}
+            >
+              잠금 해제
+            </button>
+          </form>
+
+          <p
+            className="text-[11px] mt-5"
+            style={{ color: "var(--tc-text-muted)" }}
+          >
+            인증은 현재 탭에서만 유지됩니다.
+          </p>
+          <Link
+            href="/"
+            className="block text-[11.5px] mt-3 hover:underline"
+            style={{ color: "var(--tc-text-sec)" }}
+          >
+            ← 홈으로 돌아가기
+          </Link>
+        </div>
+      </main>
+    </div>
+  );
 }
