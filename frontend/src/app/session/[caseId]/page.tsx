@@ -17,6 +17,7 @@ import { useVRMAvatar } from "@/hooks/useVRMAvatar";
 import { useSimliAvatar } from "@/hooks/useSimliAvatar";
 import { useDeepBrainAvatar } from "@/hooks/useDeepBrainAvatar";
 import { useHeyGenAvatar } from "@/hooks/useHeyGenAvatar";
+import { AudioStreamPlayer } from "@/lib/audio/AudioStreamPlayer";
 import { API_URL } from "@/lib/constants";
 import type {
   ChatMessage,
@@ -51,6 +52,8 @@ export default function SessionPage() {
   const messageIdRef = useRef(0);
   const partialTranscriptRef = useRef("");
   const conversationPhaseRef = useRef<ConversationPhase>("idle");
+  // photo 모드 전용 TTS 재생기 — 영상 아바타가 없어 직접 audio chunks를 재생
+  const photoAudioPlayerRef = useRef<AudioStreamPlayer | null>(null);
 
   // 아바타 타입 결정 (케이스 정보에서)
   const avatarType: AvatarType = caseInfo?.avatar_type || "vrm";
@@ -73,16 +76,26 @@ export default function SessionPage() {
   // 활성 아바타 선택
   const avatar = useMemo(() => {
     if (avatarType === "photo") {
-      // 영상 훅 호출 X — 정적 사진만 표시. 세션은 즉시 활성화 가능.
+      // 영상 훅 호출 X — 정적 사진만 표시. TTS audio는 별도 AudioStreamPlayer로 재생.
       return {
         isInitialized: true,
         isLoading: false,
         error: null,
-        initialize: async () => {},
-        sendBase64Audio: (_b64: string) => {},
+        initialize: async () => {
+          if (!photoAudioPlayerRef.current) {
+            photoAudioPlayerRef.current = new AudioStreamPlayer();
+            await photoAudioPlayerRef.current.init();
+          }
+        },
+        sendBase64Audio: (b64: string) => {
+          photoAudioPlayerRef.current?.feedBase64Chunk(b64);
+        },
         setEmotion: () => {},
         setConversationPhase: () => {},
-        close: () => {},
+        close: () => {
+          photoAudioPlayerRef.current?.dispose();
+          photoAudioPlayerRef.current = null;
+        },
       };
     }
     if (avatarType === "heygen") {
