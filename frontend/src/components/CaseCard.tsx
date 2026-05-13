@@ -11,6 +11,8 @@ import type { CaseInfo } from "@/lib/types";
 
 interface CaseCardProps {
   caseInfo: CaseInfo;
+  /** true면 초상화 사진을 숨기고 영상 휴먼임을 강조하는 placeholder 표시 */
+  hidePortrait?: boolean;
 }
 
 const CATEGORY_TAG_CLASS: Record<string, string> = {
@@ -36,7 +38,7 @@ const AVATAR_TAG_CONFIG: Record<string, { label: string; cls: string }> = {
   deepbrain: { label: "DeepBrain", cls: "tc-tag-blue" },
 };
 
-export function CaseCard({ caseInfo }: CaseCardProps) {
+export function CaseCard({ caseInfo, hidePortrait = false }: CaseCardProps) {
   const categoryLabel = CATEGORY_LABELS[caseInfo.category] || caseInfo.category;
   const categoryCls = CATEGORY_TAG_CLASS[caseInfo.category] || "tc-tag-gray";
   const difficultyLabel = DIFFICULTY_LABELS[caseInfo.difficulty] || caseInfo.difficulty;
@@ -45,10 +47,9 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
   const avatarType = caseInfo.avatar_type || "vrm";
   const avatar = AVATAR_TAG_CONFIG[avatarType];
 
-  const portraitSrc =
-    caseInfo.portrait_variants?.neutral ||
-    caseInfo.portrait_url ||
-    null;
+  const portraitSrc = hidePortrait
+    ? null
+    : (caseInfo.portrait_variants?.neutral || caseInfo.portrait_url || null);
 
   const [oacReachable, setOacReachable] = useState<
     null | { reachable: boolean; reason?: string }
@@ -87,13 +88,14 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
         border: "1px solid var(--tc-border)",
       }}
     >
-      {/* === 큰 인물 사진 영역 === */}
+      {/* === 큰 인물 사진 또는 영상 placeholder === */}
       <div
         className="relative w-full overflow-hidden"
         style={{
           aspectRatio: "4 / 5",
-          background:
-            "linear-gradient(180deg, var(--tc-soft-bg) 0%, var(--tc-bg-2) 100%)",
+          background: hidePortrait
+            ? "linear-gradient(135deg, var(--tc-accent-dark) 0%, var(--tc-accent-deep) 60%, var(--tc-accent) 100%)"
+            : "linear-gradient(180deg, var(--tc-soft-bg) 0%, var(--tc-bg-2) 100%)",
         }}
       >
         {portraitSrc ? (
@@ -104,6 +106,47 @@ export function CaseCard({ caseInfo }: CaseCardProps) {
             className="w-full h-full object-cover"
             loading="lazy"
           />
+        ) : hidePortrait ? (
+          // 영상 휴먼 placeholder — 짙은 갈색 그라디언트 + 영상 아이콘 + 이름 + 엔진명
+          <>
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(circle at 30% 35%, rgba(251,220,201,0.25) 0%, transparent 55%)",
+              }}
+            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+              <div className="text-[64px] leading-none mb-3">🎥</div>
+              <div
+                className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5"
+                style={{ color: "var(--tc-peach)" }}
+              >
+                Live AI Human
+              </div>
+              <div
+                className="text-[22px] font-bold leading-tight"
+                style={{
+                  color: "#fff",
+                  fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {caseInfo.name}
+              </div>
+              {avatar && (
+                <div
+                  className="text-[11px] mt-2 px-2.5 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(255,246,234,0.18)",
+                    color: "var(--tc-peach)",
+                  }}
+                >
+                  {avatar.label} 엔진
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div

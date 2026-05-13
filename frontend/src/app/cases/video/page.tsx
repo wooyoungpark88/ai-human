@@ -162,7 +162,7 @@ export default function VideoCasesPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {filteredCases.map((c) => (
-              <CaseCard key={c.id} caseInfo={c} />
+              <CaseCard key={c.id} caseInfo={c} hidePortrait />
             ))}
           </div>
         )}
