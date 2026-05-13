@@ -40,7 +40,6 @@
     "neutral": "/api/portraits/deepbrain_demo_neutral.jpg",
     "happy": "/api/portraits/deepbrain_demo_happy.jpg",
     "sad": "/api/portraits/deepbrain_demo_sad.jpg",
-    "angry": "/api/portraits/deepbrain_demo_angry.jpg",
     "thinking": "/api/portraits/deepbrain_demo_thinking.jpg",
     "anxious": "/api/portraits/deepbrain_demo_anxious.jpg",
     "empathetic": "/api/portraits/deepbrain_demo_empathetic.jpg",

@@ -10,9 +10,9 @@ from pathlib import Path
 
 from PIL import Image
 
-SRC = Path(r"O:\1.반출파일함(myDesk - PC)\ChatGPT Image 2026년 5월 13일 오후 02_08_25.png")
+SRC = Path(r"O:\1.반출파일함(myDesk - PC)\ChatGPT Image 2026년 5월 13일 오후 02_55_05.png")
 DST_DIR = Path(__file__).resolve().parent.parent / "backend" / "portraits"
-PREFIX = "relationship_intermediate"
+PREFIX = "deepbrain_demo"
 
 # (row, col) → emotion. (1,3)은 사용하지 않음 (angry 표정 부재 → 미저장 + 기존 angry 파일 삭제)
 MAPPING = {
