@@ -65,9 +65,14 @@ export function AvatarView({
     <Card
       className={`relative overflow-hidden bg-black w-full ${
         avatarType === "photo"
-          ? "max-w-sm aspect-[3/4]"
+          ? "max-w-sm aspect-[3/4] flex-shrink-0"
           : "max-w-2xl aspect-video"
       } mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
+      style={
+        avatarType === "photo"
+          ? { aspectRatio: "3 / 4", flexShrink: 0 }
+          : undefined
+      }
     >
       {/* VRM 아바타 */}
       {avatarType === "vrm" && isInitialized && vrm && controllers && (
