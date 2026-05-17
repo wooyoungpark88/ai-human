@@ -66,12 +66,12 @@ export function AvatarView({
       className={`relative overflow-hidden bg-black w-full ${
         avatarType === "photo"
           ? "max-w-sm aspect-[3/4] flex-shrink-0"
-          : "max-w-2xl aspect-video"
+          : "max-w-xl aspect-[4/5]"
       } mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
       style={
         avatarType === "photo"
           ? { aspectRatio: "3 / 4", flexShrink: 0 }
-          : undefined
+          : { aspectRatio: "4 / 5" }
       }
     >
       {/* VRM 아바타 */}
@@ -126,6 +126,7 @@ export function AvatarView({
             autoPlay
             playsInline
             className="w-full h-full object-cover"
+            style={{ objectPosition: "center top" }}
           />
           <audio ref={audioRef} autoPlay />
           {isInitialized && !hasVideoStream && (
@@ -162,6 +163,7 @@ export function AvatarView({
             autoPlay
             playsInline
             className="w-full h-full object-cover"
+            style={{ objectPosition: "center top" }}
           />
           <audio ref={audioRef} autoPlay />
           {isInitialized && !hasVideoStream && (
@@ -230,6 +232,7 @@ export function AvatarView({
             autoPlay
             playsInline
             className="w-full h-full object-cover"
+            style={{ objectPosition: "center top" }}
           />
           <audio ref={audioRef} autoPlay />
           {/* 데모 모드 오버레이 (비디오 스트림 없을 때) */}

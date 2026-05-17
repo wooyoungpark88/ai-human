@@ -554,160 +554,160 @@ export default function SessionPage() {
             emotionIntensity={emotionIntensity}
           />
 
-          {/* 큰 컨트롤 바: 감정 표시 + 시작/종료 버튼 */}
+          {/* 통합 컨트롤 박스: 감정 + 시작/종료 + (active 시) 마이크/채팅 */}
           <div
-            className="w-full max-w-2xl mx-auto rounded-[14px] border px-4 sm:px-5 py-3 sm:py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4"
+            className="w-full max-w-2xl mx-auto rounded-[14px] border overflow-hidden"
             style={{
               background: "var(--tc-card-white)",
               borderColor: "var(--tc-border)",
             }}
           >
-            {/* 내담자 감정 표시 (크게) */}
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-              <span
-                className="text-[10px] font-bold tracking-[0.16em] uppercase whitespace-nowrap"
-                style={{ color: "var(--tc-text-muted)" }}
-              >
-                내담자 감정
-              </span>
-              <div className="flex items-center gap-2.5 min-w-0">
+            {/* 상단 row: 감정 표시 + 시작/종료 */}
+            <div className="px-4 sm:px-5 py-3 sm:py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+              {/* 내담자 감정 표시 (크게) */}
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                 <span
-                  className="text-[28px] leading-none transition-all"
-                  style={{
-                    opacity: isSessionActive
-                      ? 0.6 + emotionIntensity * 0.4
-                      : 0.35,
-                  }}
+                  className="text-[10px] font-bold tracking-[0.16em] uppercase whitespace-nowrap"
+                  style={{ color: "var(--tc-text-muted)" }}
                 >
-                  {(EMOTION_MAP[currentEmotion] ?? EMOTION_MAP.neutral).emoji}
+                  내담자 감정
                 </span>
-                <div className="min-w-0">
-                  <div
-                    className="text-[15px] font-bold leading-tight"
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className="text-[28px] leading-none transition-all"
                     style={{
-                      fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
-                      color: isSessionActive
-                        ? "var(--tc-accent-dark)"
-                        : "var(--tc-text-muted)",
-                      letterSpacing: "-0.01em",
+                      opacity: isSessionActive
+                        ? 0.6 + emotionIntensity * 0.4
+                        : 0.35,
                     }}
                   >
-                    {(EMOTION_MAP[currentEmotion] ?? EMOTION_MAP.neutral).label}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1">
+                    {(EMOTION_MAP[currentEmotion] ?? EMOTION_MAP.neutral).emoji}
+                  </span>
+                  <div className="min-w-0">
                     <div
-                      className="w-[80px] h-1.5 rounded-full overflow-hidden"
-                      style={{ background: "var(--tc-soft-bg)" }}
+                      className="text-[15px] font-bold leading-tight"
+                      style={{
+                        fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+                        color: isSessionActive
+                          ? "var(--tc-accent-dark)"
+                          : "var(--tc-text-muted)",
+                        letterSpacing: "-0.01em",
+                      }}
                     >
-                      <div
-                        className="h-full transition-all duration-500"
-                        style={{
-                          width: `${Math.round(emotionIntensity * 100)}%`,
-                          background: isSessionActive
-                            ? "linear-gradient(90deg, var(--tc-accent-light), var(--tc-accent))"
-                            : "var(--tc-border-warm)",
-                        }}
-                      />
+                      {(EMOTION_MAP[currentEmotion] ?? EMOTION_MAP.neutral).label}
                     </div>
-                    <span
-                      className="text-[11px] tabular-nums"
-                      style={{ color: "var(--tc-text-sec)" }}
-                    >
-                      {Math.round(emotionIntensity * 100)}%
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div
+                        className="w-[80px] h-1.5 rounded-full overflow-hidden"
+                        style={{ background: "var(--tc-soft-bg)" }}
+                      >
+                        <div
+                          className="h-full transition-all duration-500"
+                          style={{
+                            width: `${Math.round(emotionIntensity * 100)}%`,
+                            background: isSessionActive
+                              ? "linear-gradient(90deg, var(--tc-accent-light), var(--tc-accent))"
+                              : "var(--tc-border-warm)",
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="text-[11px] tabular-nums"
+                        style={{ color: "var(--tc-text-sec)" }}
+                      >
+                        {Math.round(emotionIntensity * 100)}%
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* 시작/종료 버튼 (크게) — 모바일에선 풀폭 */}
+              {!isSessionActive ? (
+                <button
+                  onClick={handleStartSession}
+                  disabled={avatar.isLoading}
+                  className="w-full sm:w-auto px-6 sm:px-7 py-3 rounded-full text-[14.5px] font-bold transition-all hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
+                  style={{
+                    background: "var(--tc-accent-dark)",
+                    color: "#fff",
+                    fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  <span className="text-[16px]">▶</span>
+                  <span>{avatar.isLoading ? "연결 중..." : "상담 시작"}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleStopSession}
+                  className="w-full sm:w-auto px-6 py-3 rounded-full text-[13.5px] font-semibold transition-colors hover:bg-[var(--tc-soft-bg)] flex items-center justify-center gap-2 whitespace-nowrap"
+                  style={{
+                    background: "var(--tc-card-white)",
+                    color: "var(--tc-accent-dark)",
+                    border: "1.5px solid var(--tc-border-warm)",
+                  }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: "var(--tc-red)" }}
+                  />
+                  상담 종료
+                </button>
+              )}
             </div>
 
-            {/* 시작/종료 버튼 (크게) — 모바일에선 풀폭 */}
-            {!isSessionActive ? (
-              <button
-                onClick={handleStartSession}
-                disabled={avatar.isLoading}
-                className="w-full sm:w-auto px-6 sm:px-7 py-3 rounded-full text-[14.5px] font-bold transition-all hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
-                style={{
-                  background: "var(--tc-accent-dark)",
-                  color: "#fff",
-                  fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
-                  letterSpacing: "-0.01em",
-                }}
+            {/* 하단 row: 마이크 + 채팅 입력 (상담 시작 후에만 표출) */}
+            {isSessionActive && (
+              <div
+                className="border-t px-4 sm:px-5 py-3 flex items-center gap-2.5"
+                style={{ borderColor: "var(--tc-border)" }}
               >
-                <span className="text-[16px]">▶</span>
-                <span>{avatar.isLoading ? "연결 중..." : "상담 시작"}</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleStopSession}
-                className="w-full sm:w-auto px-6 py-3 rounded-full text-[13.5px] font-semibold transition-colors hover:bg-[var(--tc-soft-bg)] flex items-center justify-center gap-2 whitespace-nowrap"
-                style={{
-                  background: "var(--tc-card-white)",
-                  color: "var(--tc-accent-dark)",
-                  border: "1.5px solid var(--tc-border-warm)",
-                }}
-              >
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: "var(--tc-red)" }}
-                />
-                상담 종료
-              </button>
-            )}
-          </div>
-
-          {/* 마이크 컨트롤 */}
-          <div className="flex flex-col items-center gap-2">
-            {sttAvailable ? (
-              <>
-                <MicButton
-                  isRecording={mic.isRecording}
-                  isConnected={ws.isConnected}
-                  onToggle={handleMicToggle}
-                  disabled={!isSessionActive}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {mic.isRecording
-                    ? "듣고 있어요..."
-                    : isSessionActive
-                      ? "마이크를 눌러 상담하세요"
-                      : "상담을 시작해주세요"}
-                </p>
-                {mic.error && (
-                  <p className="text-xs text-red-500">{mic.error}</p>
+                {sttAvailable && (
+                  <MicButton
+                    isRecording={mic.isRecording}
+                    isConnected={ws.isConnected}
+                    onToggle={handleMicToggle}
+                    disabled={!isSessionActive}
+                  />
                 )}
-              </>
-            ) : (
-              <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                음성 인식 비활성 — 텍스트로 대화하세요
+                <Input
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      handleSendText();
+                    }
+                  }}
+                  placeholder={
+                    mic.isRecording
+                      ? "🎙 듣고 있어요..."
+                      : sttAvailable
+                        ? "마이크 또는 텍스트로 응답하세요"
+                        : "음성 인식 비활성 — 텍스트로 응답하세요"
+                  }
+                  disabled={isThinking || mic.isRecording}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleSendText}
+                  disabled={!textInput.trim() || isThinking}
+                  size="sm"
+                >
+                  전송
+                </Button>
+              </div>
+            )}
+            {mic.error && isSessionActive && (
+              <p
+                className="text-xs px-4 sm:px-5 pb-2"
+                style={{ color: "var(--tc-red)" }}
+              >
+                {mic.error}
               </p>
             )}
           </div>
-
-          {/* 텍스트 입력 */}
-          {isSessionActive && (
-            <div className="flex w-full max-w-md gap-2">
-              <Input
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                    e.preventDefault();
-                    handleSendText();
-                  }
-                }}
-                placeholder="상담사로서 응답하세요..."
-                disabled={isThinking}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSendText}
-                disabled={!textInput.trim() || isThinking}
-                size="sm"
-              >
-                전송
-              </Button>
-            </div>
-          )}
 
           {/* 회기 목표 + 수행 현황 대시보드 */}
           <div className="w-full max-w-2xl mx-auto pt-2">
