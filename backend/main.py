@@ -1001,6 +1001,12 @@ class ConversationSession:
                 if self.case_profile
                 else None
             )
+            # 케이스별 발화 속도 스케일 (기본 1.0, 박준영처럼 느린 톤은 0.85)
+            case_voice_speed_scale = (
+                getattr(self.case_profile, "voice_speed_scale", 1.0)
+                if self.case_profile
+                else 1.0
+            )
 
             # hybrid realtime pacing — ElevenLabs flash가 realtime의 5~10배 속도로 생성하므로
             # 그대로 burst-send하면 Simli LiveKit transport에 burst 부하가 직접 도달해 stutter 발생.
@@ -1014,6 +1020,7 @@ class ConversationSession:
                 emotion_mapping=emotion_mapping,
                 voice_direction=llm_response.voice_direction,
                 voice_id=case_voice_id,
+                voice_speed_scale=case_voice_speed_scale,
             ):
                 # 첫 N개는 burst, 이후 페이싱
                 if audio_chunk_count >= BURST_PREFIX_COUNT:

@@ -49,6 +49,7 @@ class ElevenLabsTTSService:
         voice_direction: str = "",
         chunk_size: int = 2560,  # 80ms @ 16kHz/16bit mono — WS 페이싱과 일치
         voice_id: Optional[str] = None,
+        voice_speed_scale: float = 1.0,
     ) -> AsyncGenerator[bytes, None]:
         """텍스트를 음성으로 변환하여 청크 단위로 스트리밍합니다.
 
@@ -81,9 +82,14 @@ class ElevenLabsTTSService:
             style = emotion_mapping.voice_style
             speed = emotion_mapping.voice_speed
 
+        # 케이스별 voice_speed_scale 적용. ElevenLabs API의 speed 범위는 0.7~1.2
+        # 라서 그 범위로 clamp.
+        if voice_speed_scale != 1.0:
+            speed = max(0.7, min(1.2, speed * voice_speed_scale))
+
         logger.info(
             f"[TTS] 요청: voice={effective_voice}, model={self.model_id}, "
-            f"speed={speed}, text_len={len(tagged_text)}, "
+            f"speed={speed:.3f} (scale={voice_speed_scale}), text_len={len(tagged_text)}, "
             f"text_preview={tagged_text[:80]!r}"
         )
 

@@ -184,6 +184,9 @@ class CaseProfile(BaseModel):
     response_length: Optional[str] = None
     # LLM에 동적 prepend되는 사용자 지정 가이드 (튜닝 페이지에서 수정)
     tuning_notes: Optional[str] = None
+    # 케이스별 TTS 발화 속도 스케일. 1.0 기준, emotion_mapping.voice_speed에 곱해짐.
+    # 0.85 = 15% 더 느림 (상담 받으러 온 위축된 내담자 톤)
+    voice_speed_scale: float = 1.0
 
     # === 아바타 매핑 (실시간 영상 AI 휴먼) ===
     avatar_type: Optional[AvatarType] = None
