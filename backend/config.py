@@ -16,11 +16,11 @@ class Settings(BaseSettings):
     # ElevenLabs
     ELEVENLABS_API_KEY: str = ""
     ELEVENLABS_VOICE_ID: str = ""
-    # eleven_flash_v2_5: 첫 청크 ~75ms (vs eleven_v3 ~500-1000ms).
-    # 실시간 Simli 영상 립싱크 등 대화형 시나리오에 최적.
-    # 오디오 태그([cheerfully] 등)는 지원 안 되지만, _supports_audio_tags()가
-    # 자동으로 분기하여 텍스트로 새지 않음.
-    ELEVENLABS_MODEL_ID: str = "eleven_flash_v2_5"
+    # eleven_v3: audio 태그([cheerfully] 등) 지원 + 음색이 박지영 등 voice_id=None
+    # 케이스의 기존 운영 음성과 일치. 첫 청크 지연(~500-1000ms)은 _run_pipeline의
+    # hybrid pacing 및 BURST_PREFIX_COUNT로 보완.
+    # (이전 flash_v2_5 변경은 음색 변동을 일으켜 사용자 요청으로 되돌림)
+    ELEVENLABS_MODEL_ID: str = "eleven_v3"
 
     # Deepgram
     DEEPGRAM_API_KEY: str = ""
