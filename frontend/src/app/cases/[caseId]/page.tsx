@@ -179,6 +179,18 @@ export default function CaseSpecPage() {
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0 flex-wrap">
+              <Link
+                href={`/cases/${caseId}/tune`}
+                className="px-4 py-2 rounded-full text-[12px] font-semibold transition-colors flex items-center gap-1.5"
+                style={{
+                  background: "var(--tc-card-white)",
+                  color: "var(--tc-accent-dark)",
+                  border: "1.5px solid var(--tc-border-warm)",
+                }}
+                title="감정 빈도·응답 길이·가이드 조정"
+              >
+                🎛️ 품질 튜닝
+              </Link>
               <button
                 onClick={() => regeneratePortrait("all_emotions")}
                 disabled={portraitBusy}

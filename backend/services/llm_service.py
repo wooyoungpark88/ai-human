@@ -86,11 +86,60 @@ class ClaudeLLMService:
         return profile
 
     def load_case_profile(self, case_id: str) -> Optional[CaseProfile]:
-        """상담 훈련용 내담자 케이스 프로필을 로드합니다."""
+        """상담 훈련용 내담자 케이스 프로필을 로드합니다.
+
+        load 시 emotion_weights·tuning_notes를 system_prompt에 동적 주입.
+        """
         profile = self._load_profile_file(CASE_PROFILES_DIR, case_id, CaseProfile, "케이스 프로필")
         if profile:
             logger.info(f"케이스 프로필 로드 완료: {profile.name} ({profile.presenting_issue})")
+            # 튜닝 가이드를 system_prompt에 prepend
+            tuning_block = self._build_tuning_block(profile)
+            if tuning_block:
+                profile.system_prompt = tuning_block + "\n\n" + profile.system_prompt
         return profile
+
+    @staticmethod
+    def _build_tuning_block(profile: CaseProfile) -> str:
+        """페르소나 튜닝 옵션을 LLM이 따를 가이드 블록으로 변환.
+
+        - emotion_weights: 감정별 표현 빈도 가중치 (sad 자제, neutral 강화 등)
+        - response_length: 응답 길이 가이드
+        - tuning_notes: 사용자 자유 텍스트
+        """
+        lines: list[str] = []
+        weights = profile.emotion_weights or {}
+        if weights:
+            # 가중치를 자연어로 해석 — 매우 낮음(<0.5) / 자제(<1.0) / 기본(1.0) / 자주(>1.0)
+            lo, mid, hi = [], [], []
+            for emo, w in weights.items():
+                if w is None: continue
+                if w < 0.5:
+                    lo.append(f"{emo}({w:.1f})")
+                elif w > 1.3:
+                    hi.append(f"{emo}({w:.1f})")
+                else:
+                    mid.append(emo)
+            parts = []
+            if lo: parts.append(f"매우 자제할 감정: {', '.join(lo)} — 정말 강한 순간에만 한 번씩")
+            if hi: parts.append(f"자주 사용할 감정: {', '.join(hi)}")
+            if parts:
+                lines.append("## 감정 표현 빈도 가이드")
+                lines.extend(parts)
+                lines.append("실제 내담자처럼 감정의 그라데이션을 자연스럽게 표현하세요. "
+                             "한 가지 감정만 반복하지 말고, 대화의 맥락에 따라 다양하게.")
+
+        if profile.response_length:
+            lines.append("")
+            lines.append("## 응답 길이")
+            lines.append(profile.response_length)
+
+        if profile.tuning_notes:
+            lines.append("")
+            lines.append("## 추가 가이드")
+            lines.append(profile.tuning_notes)
+
+        return "\n".join(lines).strip()
 
     def _is_api_key_valid(self) -> bool:
         """API 키가 유효한지 확인합니다 (플레이스홀더 아닌지)."""

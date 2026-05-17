@@ -78,6 +78,9 @@ export interface CaseInfo {
   external_url?: string;
   portrait_url?: string;
   portrait_variants?: Record<string, string>;
+  emotion_weights?: Record<string, number>;
+  response_length?: string;
+  tuning_notes?: string;
 }
 
 /** 페르소나 빌더 — v2 신규 필드 */
@@ -181,6 +184,9 @@ export interface PersonaDraft {
   portrait_url?: string;
   portrait_variants?: Record<string, string>;
   portrait_prompt?: string;
+  emotion_weights?: Record<string, number>;
+  response_length?: string;
+  tuning_notes?: string;
   // 영상 아바타 매핑
   avatar_type?: AvatarType;
   simli_face_id?: string;

@@ -47,5 +47,16 @@
     "thinking": "/api/portraits/anxiety_beginner_thinking.jpg",
     "anxious": "/api/portraits/anxiety_beginner_anxious.jpg",
     "empathetic": "/api/portraits/anxiety_beginner_empathetic.jpg"
-  }
+  },
+  "emotion_weights": {
+    "neutral": 1.4,
+    "thinking": 1.2,
+    "anxious": 1.0,
+    "empathetic": 0.9,
+    "happy": 0.7,
+    "surprised": 0.7,
+    "sad": 0.4,
+    "angry": 0.5
+  },
+  "response_length": "응답은 1~2문장으로 간결하게. 내담자는 상담사보다 말이 적어야 합니다."
 }

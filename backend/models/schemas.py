@@ -176,6 +176,15 @@ class CaseProfile(BaseModel):
     portrait_variants: Optional[dict[str, str]] = None  # 감정별 8장 (neutral/happy/sad/angry/surprised/thinking/anxious/empathetic)
     portrait_prompt: Optional[str] = None
 
+    # === 페르소나 품질 튜닝 (대시보드에서 조정) ===
+    # 감정별 표현 빈도 가중치. 0.0~2.0 권장. 기본 1.0 (변경 없음).
+    # 예: {"sad": 0.3, "neutral": 1.5} → 슬픔 70% 자제, 평온 50% 증가
+    emotion_weights: Optional[dict[str, float]] = None
+    # 응답 길이 가이드 (1-2 / 2-3 / 3-5문장)
+    response_length: Optional[str] = None
+    # LLM에 동적 prepend되는 사용자 지정 가이드 (튜닝 페이지에서 수정)
+    tuning_notes: Optional[str] = None
+
     # === 아바타 매핑 (실시간 영상 AI 휴먼) ===
     avatar_type: Optional[AvatarType] = None
     flashhead_model_id: Optional[str] = None

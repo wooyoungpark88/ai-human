@@ -171,6 +171,9 @@ async def list_cases():
                     k: _bust_portrait_url(v)
                     for k, v in (data.get("portrait_variants") or {}).items()
                 },
+                "emotion_weights": data.get("emotion_weights") or {},
+                "response_length": data.get("response_length", ""),
+                "tuning_notes": data.get("tuning_notes", ""),
             })
     return {"cases": cases}
 

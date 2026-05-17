@@ -47,5 +47,16 @@
     "anxious": "/api/portraits/relationship_intermediate_anxious.jpg",
     "empathetic": "/api/portraits/relationship_intermediate_empathetic.jpg"
   },
-  "portrait_prompt": "Hyper-realistic documentary photograph, vertical portrait of a real Korean woman, age 15. Korean teenager, fresh youthful face, school-age. Working as a 중학교 2학년 학생. compassionate soft eyes, slightly tilted head, warm understanding expression. Authentic East Asian facial features: warm ivory skin tone with natural undertones, naturally proportioned face, dark brown or black hair, almond-shaped eyes with monolid or natural double eyelid, realistic Korean styling — natural minimal makeup if applicable, contemporary K-fashion. Personality conveyed through expression: 원래는 밝고 활발한 성격이었지만, 왕따를 당한 후 위축되고 눈치를 많이 봅니다. 자존감이 크게 떨어진 상태입니다.. Shot on Canon EOS R5 with 50mm f/1.8 lens, soft natural window light, shallow depth of field, neutral warm-toned indoor background, head-and-shoulders framing. Photographic realism: visible skin pores, natural skin imperfections, realistic hair strands, subtle eye catchlight, unedited candid feel. NO airbrushing, NO plastic look, NO CGI, NO illustration, NO anime style — this must look like a real photograph of a real person. Identity seed [relationship_intermediate]: same face, hairstyle, and clothing across all emotion variants. Single subject, modest framing, no text, no watermarks, no logos, no captions. For professional counseling training material — dignified and authentic."
+  "portrait_prompt": "Hyper-realistic documentary photograph, vertical portrait of a real Korean woman, age 15. Korean teenager, fresh youthful face, school-age. Working as a 중학교 2학년 학생. compassionate soft eyes, slightly tilted head, warm understanding expression. Authentic East Asian facial features: warm ivory skin tone with natural undertones, naturally proportioned face, dark brown or black hair, almond-shaped eyes with monolid or natural double eyelid, realistic Korean styling — natural minimal makeup if applicable, contemporary K-fashion. Personality conveyed through expression: 원래는 밝고 활발한 성격이었지만, 왕따를 당한 후 위축되고 눈치를 많이 봅니다. 자존감이 크게 떨어진 상태입니다.. Shot on Canon EOS R5 with 50mm f/1.8 lens, soft natural window light, shallow depth of field, neutral warm-toned indoor background, head-and-shoulders framing. Photographic realism: visible skin pores, natural skin imperfections, realistic hair strands, subtle eye catchlight, unedited candid feel. NO airbrushing, NO plastic look, NO CGI, NO illustration, NO anime style — this must look like a real photograph of a real person. Identity seed [relationship_intermediate]: same face, hairstyle, and clothing across all emotion variants. Single subject, modest framing, no text, no watermarks, no logos, no captions. For professional counseling training material — dignified and authentic.",
+  "emotion_weights": {
+    "neutral": 1.4,
+    "thinking": 1.2,
+    "anxious": 1.0,
+    "empathetic": 0.9,
+    "happy": 0.7,
+    "surprised": 0.7,
+    "sad": 0.4,
+    "angry": 0.5
+  },
+  "response_length": "응답은 1~2문장으로 간결하게. 내담자는 상담사보다 말이 적어야 합니다."
 }
