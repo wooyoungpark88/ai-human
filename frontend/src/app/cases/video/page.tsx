@@ -7,10 +7,12 @@ import { CaseCard } from "@/components/CaseCard";
 import { API_URL, CATEGORY_LABELS } from "@/lib/constants";
 import type { CaseInfo } from "@/lib/types";
 
-// 영상 AI 휴먼 모드 = avatar_type이 "photo"가 아닌 모든 케이스
-// (이준호 simli, 김서연 heygen, 박지영 vrm, 한지유 deepbrain, 오은정 flashhead)
+// 영상 기반 훈련 = HeyGen / Simli / OpenAvatarChat(FlashHead) 엔진만 노출
+// (이준호 simli, 김서연 heygen, 오은정 flashhead)
+// VRM·DeepBrain·photo 모드는 별도 페이지/내부 데모용으로 제외
+const VIDEO_AVATAR_TYPES = new Set(["heygen", "simli", "flashhead"]);
 const isVideoCase = (avatar_type?: string) =>
-  !!avatar_type && avatar_type !== "photo";
+  !!avatar_type && VIDEO_AVATAR_TYPES.has(avatar_type);
 
 const ALL_CATEGORIES = ["all", ...Object.keys(CATEGORY_LABELS)];
 const ALL_DIFFICULTIES = ["all", "beginner", "intermediate", "advanced"];

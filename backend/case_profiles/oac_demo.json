@@ -7,7 +7,7 @@
   "presenting_issue": "OpenAvatarChat 로컬 GPU 실시간 한국어 대화 데모",
   "category": "depression",
   "difficulty": "beginner",
-  "description": "내 노트북의 RTX 5080 GPU에서 직접 돌아가는 AI 휴먼입니다. 클라우드(Simli/BP) 대신 로컬 OpenAvatarChat의 FlashHead 엔진을 사용해 한국어 대화 + 립싱크 + 표정을 실시간 생성합니다. '데모 열기' 클릭 시 OpenAvatarChat 자체 UI가 새 탭으로 열립니다. (https://localhost:8282 — 자체 서명 인증서 경고는 '고급' → '계속'으로 우회)",
+  "description": "32세 직장인 워킹맘 오은정. 출산 후 복직하면서 업무·육아·가사가 동시에 몰려와 자기 자신을 돌볼 여유가 사라졌습니다. 모든 역할을 잘 해내야 한다는 부담에 우울감과 무기력이 짙어지고 있습니다.",
   "personality": "OAC 사이드카가 자체 LLM(Claude)으로 응답하며, 페르소나는 OAC config의 system_prompt에서 정의됩니다.",
   "speaking_style": "한국어 자연스러운 상담사 톤 (Edge TTS ko-KR-SunHiNeural)",
   "background_story": "이 시나리오는 ai-human 서비스 본체와 무관하게, 별도의 OpenAvatarChat 사이드카(WSL2 + RTX 5080 + FlashHead Lite)에서 동작합니다. 아바타 얼굴은 사이드카의 cond_image_path 설정 이미지(현재: girl.png).",

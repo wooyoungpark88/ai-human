@@ -94,6 +94,32 @@ export default function NewPersonaPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
+  // === 편집 모드 — ?from=<caseId>면 기존 케이스를 불러와서 초기값으로 ===
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const from = params.get("from");
+    if (!from) return;
+    setEditingId(from);
+    setEditLoading(true);
+    fetch(`${API_URL}/api/cases/${from}?include_internal=true`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) {
+          setToast({ type: "err", msg: `편집 로드 실패: ${d.error}` });
+          return;
+        }
+        // 기존 케이스로 INITIAL_PERSONA 덮어쓰기 (누락 필드는 INITIAL_PERSONA 기본값 사용)
+        setPersona({ ...INITIAL_PERSONA, ...d, id: from });
+      })
+      .catch((e) => {
+        setToast({ type: "err", msg: `편집 로드 실패: ${e?.message || e}` });
+      })
+      .finally(() => setEditLoading(false));
+  }, []);
+
   // ⚠️ 비밀번호 early return은 useMemo(completion) 호출 다음에 위치해야 함 (Hook 순서 유지)
 
   const update = <K extends keyof PersonaDraft>(key: K, value: PersonaDraft[K]) =>
@@ -108,51 +134,8 @@ export default function NewPersonaPage() {
       [parent]: { ...(p[parent] as object), ...patch } as PersonaDraft[P],
     }));
 
-  const generatePortrait = async (
-    mode: "single" | "all_emotions",
-    promptOverride?: string
-  ) => {
-    setBusy(`portrait-${mode}`);
-    setToast(null);
-    try {
-      const emotions =
-        mode === "all_emotions"
-          ? ["neutral", "happy", "sad", "angry", "surprised", "thinking", "anxious", "empathetic"]
-          : ["neutral"];
-      const res = await fetch(`${API_URL}/api/cases/generate-portrait`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          persona,
-          prompt_override: promptOverride,
-          case_id: persona.id || undefined,
-          emotions,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        setToast({ type: "err", msg: data.error });
-      } else if (data.url) {
-        update("portrait_url", data.url);
-        if (data.variants) {
-          update("portrait_variants", data.variants);
-        }
-        update("portrait_prompt", data.prompt_used);
-        const cnt = data.variants ? Object.keys(data.variants).length : 1;
-        setToast({
-          type: "ok",
-          msg:
-            data.errors?.length > 0
-              ? `${cnt}장 생성 완료 (${data.errors.length}건 실패)`
-              : `${cnt}장 생성 완료`,
-        });
-      }
-    } catch (e) {
-      setToast({ type: "err", msg: e instanceof Error ? e.message : "생성 실패" });
-    } finally {
-      setBusy(null);
-    }
-  };
+  // 초상화 자동 생성 기능은 TBD — 현재는 ChatGPT/Midjourney 그리드를
+  // scripts/split_portrait_grid.py 로 분할 적용하는 방식을 사용합니다.
 
   const generatePrompt = async (mode: "ai" | "template") => {
     setBusy(`prompt-${mode}`);
@@ -181,17 +164,24 @@ export default function NewPersonaPage() {
     setBusy("save");
     setToast(null);
     try {
+      const isEditing = !!editingId;
       const res = await fetch(`${API_URL}/api/cases/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile: persona, overwrite: false }),
+        body: JSON.stringify({ profile: persona, overwrite: isEditing }),
       });
       const data = await res.json();
       if (data.error) {
         setToast({ type: "err", msg: data.error });
       } else if (data.saved) {
-        setToast({ type: "ok", msg: `저장 완료 — '${data.id}'` });
-        setTimeout(() => router.push("/cases"), 800);
+        setToast({
+          type: "ok",
+          msg: isEditing ? `편집 저장 완료 — '${data.id}'` : `저장 완료 — '${data.id}'`,
+        });
+        setTimeout(
+          () => router.push(isEditing ? `/cases/${data.id}` : "/cases"),
+          800,
+        );
       }
     } catch (e) {
       setToast({ type: "err", msg: e instanceof Error ? e.message : "저장 실패" });
@@ -220,15 +210,41 @@ export default function NewPersonaPage() {
           <div className="text-[11.5px] flex gap-1.5 mb-1.5" style={{ color: "var(--tc-text-sec)" }}>
             <Link href="/cases" className="hover:underline">케이스</Link>
             <span style={{ color: "var(--tc-text-muted)" }}>›</span>
-            <span>신규 페르소나</span>
+            {editingId ? (
+              <>
+                <Link href={`/cases/${editingId}`} className="hover:underline">{persona.name || editingId}</Link>
+                <span style={{ color: "var(--tc-text-muted)" }}>›</span>
+                <span>편집</span>
+              </>
+            ) : (
+              <span>신규 페르소나</span>
+            )}
           </div>
           <div className="flex items-end justify-between flex-wrap gap-3">
             <div>
-              <h1 className="tc-page-h text-[20px] sm:text-[24px]">내담자 페르소나 빌더</h1>
+              <h1 className="tc-page-h text-[20px] sm:text-[24px]">
+                {editingId
+                  ? `${persona.name || editingId} 페르소나 편집`
+                  : "내담자 페르소나 빌더"}
+              </h1>
               <p className="text-[12.5px] sm:text-[13px] mt-1 max-w-[760px]" style={{ color: "var(--tc-text-sec)" }}>
-                구조화된 임상 정보를 입력하면 AI가 system_prompt를 자동 생성합니다.
-                기존 케이스보다 임상 깊이·위험 평가·방어기제·트리거·강점·세션 단계 매트릭스가 추가됩니다.
+                {editingId ? (
+                  <>
+                    기존 케이스 <code>{editingId}.json</code>을 불러왔습니다.
+                    수정 후 저장하면 같은 ID로 <strong>덮어쓰기</strong>됩니다. (ID 변경 불가)
+                  </>
+                ) : (
+                  <>
+                    구조화된 임상 정보를 입력하면 AI가 system_prompt를 자동 생성합니다.
+                    기존 케이스보다 임상 깊이·위험 평가·방어기제·트리거·강점·세션 단계 매트릭스가 추가됩니다.
+                  </>
+                )}
               </p>
+              {editLoading && (
+                <p className="text-[11.5px] mt-1.5" style={{ color: "var(--tc-text-muted)" }}>
+                  ⏳ 케이스 로딩 중...
+                </p>
+              )}
             </div>
             <div className="text-[11.5px]" style={{ color: "var(--tc-text-sec)" }}>
               완성도{" "}
@@ -274,8 +290,7 @@ export default function NewPersonaPage() {
               <SectionBasic
                 persona={persona}
                 update={update}
-                onGeneratePortrait={generatePortrait}
-                busy={busy}
+                editingId={editingId}
               />
             )}
             {STEPS[step].key === "clinical" && (
@@ -306,6 +321,7 @@ export default function NewPersonaPage() {
                 onGenerate={generatePrompt}
                 onSave={save}
                 busy={busy}
+                editingId={editingId}
               />
             )}
 
@@ -380,26 +396,34 @@ const EMOTION_LABELS: Record<string, string> = {
 function SectionBasic({
   persona,
   update,
-  onGeneratePortrait,
-  busy,
+  editingId,
 }: {
   persona: PersonaDraft;
   update: <K extends keyof PersonaDraft>(k: K, v: PersonaDraft[K]) => void;
-  onGeneratePortrait: (mode: "single" | "all_emotions", prompt?: string) => void;
-  busy: string | null;
+  editingId: string | null;
 }) {
-  const [editPrompt, setEditPrompt] = useState(false);
   const variants = persona.portrait_variants || {};
   const variantsCount = Object.keys(variants).length;
   return (
     <div className="space-y-4">
       <H2>기본 정보</H2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="ID (영문 소문자·숫자·_)" hint="저장 파일명. 예: my_anxiety_case">
+        <Field
+          label={editingId ? "ID (편집 잠금)" : "ID (영문 소문자·숫자·_)"}
+          hint={
+            editingId
+              ? "기존 케이스 편집 중 — ID는 파일명이라 변경 불가합니다."
+              : "저장 파일명. 예: my_anxiety_case"
+          }
+        >
           <Input
             value={persona.id}
-            onChange={(v) => update("id", v.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+            onChange={(v) =>
+              !editingId &&
+              update("id", v.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+            }
             placeholder="my_new_case"
+            disabled={!!editingId}
           />
         </Field>
         <Field label="이름">
@@ -457,129 +481,34 @@ function SectionBasic({
         />
       </Field>
 
-      {/* === 초상화 생성 (정적 사진 — 8가지 감정 변형) === */}
+      {/* === 인물 사진 — 자동 생성은 TBD === */}
       <div className="pt-4 mt-4 border-t" style={{ borderColor: "var(--tc-border)" }}>
         <H2>인물 사진 (정적 초상화)</H2>
-        <p
-          className="text-[11.5px] mt-1 mb-3"
-          style={{ color: "var(--tc-text-muted)" }}
+        <div
+          className="mt-2 px-4 py-3 rounded-md flex items-start gap-2.5"
+          style={{
+            background: "var(--tc-soft-bg)",
+            border: "1px dashed var(--tc-border-warm)",
+            color: "var(--tc-text-sec)",
+          }}
         >
-          OpenAI DALL-E 3가 페르소나 정보로 한국인 실사 세로 초상화를 생성합니다.
-          8가지 감정 변형을 만들면 세션 중 내담자 감정 변화에 따라 표정이 자동으로 바뀝니다.
-          (실시간 영상 AI 휴먼과는 별개)
-        </p>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
-          {/* 큰 미리보기 (neutral 또는 portrait_url) */}
-          <div
-            className="w-full rounded-[14px] overflow-hidden flex items-center justify-center"
-            style={{
-              aspectRatio: "4 / 5",
-              background: "var(--tc-soft-bg)",
-              border: "1.5px dashed var(--tc-border-warm)",
-            }}
-          >
-            {persona.portrait_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`${API_URL}${persona.portrait_url}`}
-                alt={persona.name || "초상화"}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="text-center px-3" style={{ color: "var(--tc-text-muted)" }}>
-                <div className="text-[40px] leading-none mb-1.5">🎨</div>
-                <p className="text-[11px]">초상화 미생성</p>
-              </div>
-            )}
-          </div>
-
-          {/* 컨트롤 */}
-          <div className="space-y-2.5">
-            <button
-              type="button"
-              onClick={() => onGeneratePortrait("all_emotions")}
-              disabled={busy?.startsWith("portrait")}
-              className="w-full px-4 py-3 rounded-full text-[13px] font-bold disabled:opacity-50 transition-opacity hover:opacity-95 shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
-              style={{ background: "var(--tc-accent-dark)", color: "#fff" }}
-            >
-              {busy === "portrait-all_emotions"
-                ? "8장 생성 중... (~1분 소요)"
-                : "✦ 8가지 표정 모두 생성 (권장)"}
-            </button>
-            <button
-              type="button"
-              onClick={() => onGeneratePortrait("single")}
-              disabled={busy?.startsWith("portrait")}
-              className="w-full px-4 py-2 rounded-full text-[12px] font-semibold transition-colors disabled:opacity-50"
-              style={{
-                background: "var(--tc-card-white)",
-                color: "var(--tc-accent-dark)",
-                border: "1.5px solid var(--tc-border-warm)",
-              }}
-            >
-              {busy === "portrait-single"
-                ? "생성 중..."
-                : "기본(평온) 1장만 생성 (~15초)"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditPrompt((s) => !s)}
-              className="w-full px-3 py-1.5 rounded-full text-[11px] font-medium"
-              style={{
-                background: "var(--tc-soft-bg)",
-                color: "var(--tc-text-sec)",
-                border: "1px solid var(--tc-border)",
-              }}
-            >
-              {editPrompt ? "▾ 프롬프트 닫기" : "▸ 생성 프롬프트 편집"}
-            </button>
-            {editPrompt && (
-              <div className="space-y-2">
-                <TextArea
-                  rows={5}
-                  mono
-                  value={persona.portrait_prompt || ""}
-                  onChange={(v) => update("portrait_prompt", v)}
-                  placeholder="비워두면 페르소나 데이터로 자동 생성됩니다. 영문 prompt 권장."
-                />
-                <button
-                  type="button"
-                  onClick={() => onGeneratePortrait("all_emotions", persona.portrait_prompt || undefined)}
-                  disabled={busy?.startsWith("portrait")}
-                  className="px-3 py-1.5 rounded-full text-[11.5px] font-semibold disabled:opacity-50"
-                  style={{
-                    background: "var(--tc-card-white)",
-                    color: "var(--tc-accent-dark)",
-                    border: "1.5px solid var(--tc-border-warm)",
-                  }}
-                >
-                  이 프롬프트로 8장 재생성
-                </button>
-              </div>
-            )}
-            {persona.portrait_url && !editPrompt && persona.portrait_prompt && (
-              <details className="text-[11px]" style={{ color: "var(--tc-text-muted)" }}>
-                <summary className="cursor-pointer">사용된 프롬프트 보기</summary>
-                <p
-                  className="mt-1.5 px-2 py-1.5 rounded leading-relaxed"
-                  style={{ background: "var(--tc-soft-bg)" }}
-                >
-                  {persona.portrait_prompt}
-                </p>
-              </details>
-            )}
+          <span className="text-[16px] leading-none">🚧</span>
+          <div className="text-[12px] leading-relaxed">
+            <strong style={{ color: "var(--tc-accent-deep)" }}>인물 사진 자동 생성은 준비 중(TBD)입니다.</strong>
+            <br />
+            현재는 ChatGPT/Midjourney로 직접 만든 2×4 그리드 이미지를 백엔드에서 분할 적용합니다.
+            (스크립트: <code>scripts/split_portrait_grid.py</code>)
           </div>
         </div>
 
-        {/* 8가지 표정 갤러리 */}
+        {/* 이미 저장된 8가지 표정이 있다면 미리보기로만 노출 (편집 모드 한정) */}
         {variantsCount > 0 && (
           <div className="mt-4">
             <p
               className="text-[10px] font-bold tracking-[0.16em] uppercase mb-2"
               style={{ color: "var(--tc-text-muted)" }}
             >
-              감정별 변형 ({variantsCount}/8)
+              감정별 변형 ({variantsCount}/8) — 읽기 전용
             </p>
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
               {Object.entries(EMOTION_LABELS).map(([emo, label]) => {
@@ -1101,12 +1030,14 @@ function SectionPromptAndSave({
   onGenerate,
   onSave,
   busy,
+  editingId,
 }: {
   persona: PersonaDraft;
   update: <K extends keyof PersonaDraft>(k: K, v: PersonaDraft[K]) => void;
   onGenerate: (mode: "ai" | "template") => void;
   onSave: () => void;
   busy: string | null;
+  editingId: string | null;
 }) {
   return (
     <div className="space-y-4">
@@ -1146,6 +1077,18 @@ function SectionPromptAndSave({
         )}
       </div>
 
+      <H2>TTS 음성</H2>
+      <Field
+        label="ElevenLabs Voice ID"
+        hint="비워두면 백엔드 기본 음성 사용. 남자/여자·연령에 맞는 voice_id를 ElevenLabs에서 골라 입력 (예: K349x43DIDecCYoQWw7U)"
+      >
+        <Input
+          value={persona.voice_id || ""}
+          onChange={(v) => update("voice_id", v.trim())}
+          placeholder="예: K349x43DIDecCYoQWw7U"
+        />
+      </Field>
+
       <H2>system_prompt 생성·편집</H2>
       <div className="flex flex-wrap gap-2">
         <button
@@ -1181,7 +1124,15 @@ function SectionPromptAndSave({
 
       <div className="pt-4 border-t flex items-center justify-between gap-3" style={{ borderColor: "var(--tc-border)" }}>
         <p className="text-[11.5px]" style={{ color: "var(--tc-text-sec)" }}>
-          저장하면 <code>case_profiles/{persona.id || "<id>"}.json</code> 으로 기록됩니다.
+          {editingId ? (
+            <>
+              저장하면 <code>case_profiles/{persona.id}.json</code>이 <strong>덮어쓰기</strong>됩니다.
+            </>
+          ) : (
+            <>
+              저장하면 <code>case_profiles/{persona.id || "<id>"}.json</code> 으로 기록됩니다.
+            </>
+          )}
         </p>
         <button
           onClick={onSave}
@@ -1189,7 +1140,11 @@ function SectionPromptAndSave({
           className="px-6 py-2.5 rounded-full text-[13px] font-bold disabled:opacity-40 shadow-[0_4px_14px_rgba(60,40,23,0.18)]"
           style={{ background: "var(--tc-accent-dark)", color: "#fff" }}
         >
-          {busy === "save" ? "저장 중..." : "케이스 저장"}
+          {busy === "save"
+            ? "저장 중..."
+            : editingId
+              ? "변경사항 저장 (덮어쓰기)"
+              : "케이스 저장"}
         </button>
       </div>
     </div>
@@ -1358,11 +1313,13 @@ function Input({
   onChange,
   placeholder,
   type = "text",
+  disabled = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: "text" | "number";
+  disabled?: boolean;
 }) {
   return (
     <input
@@ -1370,10 +1327,11 @@ function Input({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full px-3 py-2 rounded-md text-[12.5px] outline-none transition-colors focus:border-[var(--tc-accent-light)]"
+      disabled={disabled}
+      className="w-full px-3 py-2 rounded-md text-[12.5px] outline-none transition-colors focus:border-[var(--tc-accent-light)] disabled:cursor-not-allowed disabled:opacity-60"
       style={{
         border: "1px solid var(--tc-border)",
-        background: "#fff",
+        background: disabled ? "var(--tc-soft-bg)" : "#fff",
         color: "var(--tc-text)",
       }}
     />

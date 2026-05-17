@@ -180,6 +180,18 @@ export default function CaseSpecPage() {
             </div>
             <div className="flex gap-2 flex-shrink-0 flex-wrap">
               <Link
+                href={`/cases/new?from=${caseId}`}
+                className="px-4 py-2 rounded-full text-[12px] font-semibold transition-colors flex items-center gap-1.5"
+                style={{
+                  background: "var(--tc-card-white)",
+                  color: "var(--tc-accent-dark)",
+                  border: "1.5px solid var(--tc-border-warm)",
+                }}
+                title="페르소나 빌더에서 모든 필드 편집"
+              >
+                ✏️ 빌더로 편집
+              </Link>
+              <Link
                 href={`/cases/${caseId}/tune`}
                 className="px-4 py-2 rounded-full text-[12px] font-semibold transition-colors flex items-center gap-1.5"
                 style={{
@@ -691,6 +703,14 @@ export default function CaseSpecPage() {
                   ["DeepBrain", data.deepbrain_avatar_id],
                   ["FlashHead", data.flashhead_model_id],
                   ["External URL", data.external_url],
+                ]}
+              />
+            </Card>
+
+            <Card compact title="TTS 음성">
+              <KV
+                rows={[
+                  ["ElevenLabs Voice", data.voice_id || "(백엔드 기본값)"],
                 ]}
               />
             </Card>

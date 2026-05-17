@@ -81,6 +81,7 @@ export interface CaseInfo {
   emotion_weights?: Record<string, number>;
   response_length?: string;
   tuning_notes?: string;
+  voice_id?: string;
 }
 
 /** 페르소나 빌더 — v2 신규 필드 */
@@ -194,6 +195,8 @@ export interface PersonaDraft {
   deepbrain_avatar_id?: string;
   heygen_avatar_id?: string;
   external_url?: string;
+  // TTS 음성 (ElevenLabs voice_id) — 비워두면 백엔드 기본 음성 사용
+  voice_id?: string;
 }
 
 /** 피드백 평가 항목 */
