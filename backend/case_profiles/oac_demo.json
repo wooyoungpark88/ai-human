@@ -27,17 +27,8 @@
   "external_url": "https://localhost:8282",
   "voice_id": null,
   "face_id": null,
-  "portrait_url": "/api/portraits/oac_demo_neutral.jpg",
-  "portrait_variants": {
-    "neutral": "/api/portraits/oac_demo_neutral.jpg",
-    "happy": "/api/portraits/oac_demo_happy.jpg",
-    "sad": "/api/portraits/oac_demo_sad.jpg",
-    "angry": "/api/portraits/oac_demo_angry.jpg",
-    "surprised": "/api/portraits/oac_demo_surprised.jpg",
-    "thinking": "/api/portraits/oac_demo_thinking.jpg",
-    "anxious": "/api/portraits/oac_demo_anxious.jpg",
-    "empathetic": "/api/portraits/oac_demo_empathetic.jpg"
-  },
+  "portrait_url": null,
+  "portrait_variants": {},
   "emotion_weights": {
     "neutral": 1.4,
     "thinking": 1.2,
