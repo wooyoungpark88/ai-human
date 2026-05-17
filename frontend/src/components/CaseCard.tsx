@@ -16,12 +16,9 @@ interface CaseCardProps {
 }
 
 const CATEGORY_TAG_CLASS: Record<string, string> = {
-  burnout: "tc-tag-gold",
-  anxiety: "tc-tag-cream",
-  relationship: "tc-tag-red",
-  depression: "tc-tag-blue",
-  self_esteem: "tc-tag-green",
-  bullying: "tc-tag-red",
+  adult: "tc-tag-blue",
+  adolescent: "tc-tag-cream",
+  infant: "tc-tag-red",
 };
 
 const DIFFICULTY_TAG_CLASS: Record<string, string> = {

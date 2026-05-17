@@ -5,7 +5,7 @@
   "gender": "여성",
   "occupation": "직장인 / 워킹맘",
   "presenting_issue": "워킹맘 우울, 양육 스트레스",
-  "category": "depression",
+  "category": "adult",
   "difficulty": "beginner",
   "description": "32세 직장인 워킹맘 오은정. 출산 후 복직하면서 업무·육아·가사가 동시에 몰려와 자기 자신을 돌볼 여유가 사라졌습니다. 모든 역할을 잘 해내야 한다는 부담에 우울감과 무기력이 짙어지고 있습니다.",
   "personality": "OAC 사이드카가 자체 LLM(Claude)으로 응답하며, 페르소나는 OAC config의 system_prompt에서 정의됩니다.",

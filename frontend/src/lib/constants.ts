@@ -18,23 +18,18 @@ export const AUDIO_CONFIG = {
   bitsPerSample: 16,
 } as const;
 
-/** 케이스 카테고리 레이블 */
+/** 케이스 카테고리 레이블 — 연령 기반 분류 */
 export const CATEGORY_LABELS: Record<string, string> = {
-  burnout: "번아웃",
-  anxiety: "불안",
-  relationship: "관계",
-  depression: "우울",
-  self_esteem: "자존감",
-  bullying: "따돌림",
+  adult: "성인",
+  adolescent: "청소년",
+  infant: "영유아",
 };
 
 /** 케이스 카테고리 색상 */
 export const CATEGORY_COLORS: Record<string, string> = {
-  burnout: "bg-orange-100 text-orange-800",
-  anxiety: "bg-purple-100 text-purple-800",
-  relationship: "bg-pink-100 text-pink-800",
-  depression: "bg-blue-100 text-blue-800",
-  self_esteem: "bg-green-100 text-green-800",
+  adult: "bg-blue-100 text-blue-800",
+  adolescent: "bg-purple-100 text-purple-800",
+  infant: "bg-pink-100 text-pink-800",
 };
 
 /** 난이도 레이블 */

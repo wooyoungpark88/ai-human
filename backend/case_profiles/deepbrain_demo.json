@@ -5,7 +5,7 @@
   "gender": "여성",
   "occupation": "IT 회사 마케터",
   "presenting_issue": "DeepBrain AI Human Web SDK 한국어 실시간 대화 데모",
-  "category": "anxiety",
+  "category": "adult",
   "difficulty": "beginner",
   "description": "DeepBrain AI Human Web SDK(aihuman.aistudios.com)로 렌더링되는 AI 휴먼입니다. SDK가 자체 TTS+립싱크를 처리하므로 백엔드 ElevenLabs TTS는 사용하지 않고, LLM 텍스트 응답만 SDK의 speak()로 전달됩니다. (Beyond Presence와 비슷한 'Managed' 방식 + Simli처럼 캐릭터 선택 가능)",
   "personality": "성실하고 활동적이지만 최근 회사 프로젝트가 몰리면서 불안과 수면 문제가 시작된 케이스. 처음 상담받는 거라 어색해하면서도 본인 상태를 객관적으로 설명하려 노력합니다.",

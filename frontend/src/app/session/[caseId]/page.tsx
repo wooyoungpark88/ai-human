@@ -554,9 +554,11 @@ export default function SessionPage() {
             emotionIntensity={emotionIntensity}
           />
 
-          {/* 통합 컨트롤 박스: 감정 + 시작/종료 + (active 시) 마이크/채팅 */}
+          {/* 통합 컨트롤 박스: 감정 + 시작/종료 + (active 시) 마이크/채팅
+              — flex-shrink-0: 부모(lg:h-[calc(100vh-57px)] flex-col) 안에서
+              압축되어 마이크 row가 잘리던 문제 방지 */}
           <div
-            className="w-full max-w-2xl mx-auto rounded-[14px] border overflow-hidden"
+            className="w-full max-w-2xl mx-auto rounded-[14px] border flex-shrink-0"
             style={{
               background: "var(--tc-card-white)",
               borderColor: "var(--tc-border)",

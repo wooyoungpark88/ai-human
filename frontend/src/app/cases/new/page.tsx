@@ -19,7 +19,7 @@ const INITIAL_PERSONA: PersonaDraft = {
   gender: "여성",
   occupation: "",
   presenting_issue: "",
-  category: "anxiety",
+  category: "adult",
   difficulty: "beginner",
   description: "",
   personality: "",
@@ -62,7 +62,7 @@ const STEPS = [
   { key: "prompt", label: "프롬프트·저장" },
 ] as const;
 
-const CATEGORY_OPTIONS = ["anxiety", "depression", "burnout", "relationship", "self_esteem", "bullying"];
+const CATEGORY_OPTIONS = ["adult", "adolescent", "infant"];
 const DIFFICULTY_OPTIONS = [
   { v: "beginner", l: "초급" },
   { v: "intermediate", l: "중급" },
