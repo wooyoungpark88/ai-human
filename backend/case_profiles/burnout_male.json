@@ -47,5 +47,15 @@
     "sad": 0.3,
     "angry": 0.6
   },
-  "response_length": "응답은 1~2문장으로 간결하게. 내담자는 상담사보다 말이 적어야 합니다. 30대 남성 직장인의 절제된 톤."
+  "response_length": "응답은 1~2문장으로 간결하게. 내담자는 상담사보다 말이 적어야 합니다. 30대 남성 직장인의 절제된 톤.",
+  "portrait_url": "/api/portraits/burnout_male_neutral.jpg",
+  "portrait_variants": {
+    "neutral": "/api/portraits/burnout_male_neutral.jpg",
+    "happy": "/api/portraits/burnout_male_happy.jpg",
+    "sad": "/api/portraits/burnout_male_sad.jpg",
+    "surprised": "/api/portraits/burnout_male_surprised.jpg",
+    "thinking": "/api/portraits/burnout_male_thinking.jpg",
+    "anxious": "/api/portraits/burnout_male_anxious.jpg",
+    "empathetic": "/api/portraits/burnout_male_empathetic.jpg"
+  }
 }
