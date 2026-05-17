@@ -995,10 +995,17 @@ class ConversationSession:
             tts_start = time.time()
             audio_chunk_count = 0
 
+            # 케이스별 voice_id 우선 (없으면 글로벌 폴백)
+            case_voice_id = (
+                getattr(self.case_profile, "voice_id", None)
+                if self.case_profile
+                else None
+            )
             async for audio_chunk in self.tts_service.synthesize_speech_streaming(
                 text=llm_response.text,
                 emotion_mapping=emotion_mapping,
                 voice_direction=llm_response.voice_direction,
+                voice_id=case_voice_id,
             ):
                 audio_b64 = base64.b64encode(audio_chunk).decode("utf-8")
                 await self.send_message(

@@ -48,16 +48,20 @@ class ElevenLabsTTSService:
         emotion_mapping: Optional[EmotionMapping] = None,
         voice_direction: str = "",
         chunk_size: int = 4096,
+        voice_id: Optional[str] = None,
     ) -> AsyncGenerator[bytes, None]:
         """텍스트를 음성으로 변환하여 청크 단위로 스트리밍합니다.
 
+        voice_id가 명시되면 해당 voice 사용 (케이스별 voice 분기).
+        없으면 글로벌 settings.ELEVENLABS_VOICE_ID 폴백.
         WebSocket을 우선 시도하고, 실패 시 HTTP로 fallback합니다.
         """
         if not self._is_api_key_valid():
             logger.warning("[TTS] API 키 미설정 → 스트리밍 스킵")
             return
 
-        if not self.voice_id:
+        effective_voice = voice_id or self.voice_id
+        if not effective_voice:
             logger.warning("[TTS] Voice ID 미설정 → 스트리밍 스킵")
             return
 
@@ -78,7 +82,7 @@ class ElevenLabsTTSService:
             speed = emotion_mapping.voice_speed
 
         logger.info(
-            f"[TTS] 요청: voice={self.voice_id}, model={self.model_id}, "
+            f"[TTS] 요청: voice={effective_voice}, model={self.model_id}, "
             f"speed={speed}, text_len={len(tagged_text)}, "
             f"text_preview={tagged_text[:80]!r}"
         )
@@ -86,7 +90,7 @@ class ElevenLabsTTSService:
         # WebSocket TTS 시도
         try:
             async for chunk in self._synthesize_ws(
-                tagged_text, stability, style, speed
+                tagged_text, stability, style, speed, voice_id=effective_voice
             ):
                 yield chunk
             return
@@ -95,7 +99,7 @@ class ElevenLabsTTSService:
 
         # HTTP fallback
         async for chunk in self._synthesize_http(
-            tagged_text, stability, style, speed, chunk_size
+            tagged_text, stability, style, speed, chunk_size, voice_id=effective_voice
         ):
             yield chunk
 
@@ -105,10 +109,11 @@ class ElevenLabsTTSService:
         stability: float,
         style: float,
         speed: float,
+        voice_id: Optional[str] = None,
     ) -> AsyncGenerator[bytes, None]:
         """WebSocket을 사용한 TTS 스트리밍 (낮은 레이턴시)."""
         ws_url = ELEVENLABS_WS_URL.format(
-            voice_id=self.voice_id, model_id=self.model_id
+            voice_id=voice_id or self.voice_id, model_id=self.model_id
         )
 
         async with websockets.connect(
@@ -165,11 +170,12 @@ class ElevenLabsTTSService:
         style: float,
         speed: float,
         chunk_size: int = 4096,
+        voice_id: Optional[str] = None,
     ) -> AsyncGenerator[bytes, None]:
         """HTTP REST API를 사용한 TTS 스트리밍 (fallback)."""
         url = (
             f"{ELEVENLABS_BASE_URL}/text-to-speech/"
-            f"{self.voice_id}/stream?output_format=pcm_16000"
+            f"{voice_id or self.voice_id}/stream?output_format=pcm_16000"
         )
         headers = {
             "xi-api-key": self.api_key,
