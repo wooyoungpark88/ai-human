@@ -55,11 +55,15 @@ export function useSimliAvatar(options: UseSimliAvatarOptions = {}) {
         await import("simli-client");
 
       // 1. 세션 토큰 발급
+      // handleSilence=false: SDK가 청크 갭에 자동 침묵을 끼워넣으면 다음 청크와
+      // phase가 어긋나 "pop"/"끊김"으로 인식되는 부작용 회피.
+      // 백엔드에서 80ms 단위로 페이싱(tts_service._synthesize_ws)이 일정하게 보장되므로
+      // SDK의 침묵 채움 기능 없이도 연속 재생이 안정적임.
       const tokenData = await generateSimliSessionToken(
         {
           config: {
             faceId: resolvedFaceId,
-            handleSilence: true,
+            handleSilence: false,
             maxSessionLength: 3600,
             maxIdleTime: 600,
           },

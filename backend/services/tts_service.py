@@ -47,7 +47,7 @@ class ElevenLabsTTSService:
         text: str,
         emotion_mapping: Optional[EmotionMapping] = None,
         voice_direction: str = "",
-        chunk_size: int = 4096,
+        chunk_size: int = 2560,  # 80ms @ 16kHz/16bit mono — WS 페이싱과 일치
         voice_id: Optional[str] = None,
     ) -> AsyncGenerator[bytes, None]:
         """텍스트를 음성으로 변환하여 청크 단위로 스트리밍합니다.
@@ -140,21 +140,34 @@ class ElevenLabsTTSService:
             # EOS (End of Stream)
             await ws.send(json.dumps({"text": ""}))
 
-            # 오디오 청크 수신
+            # 오디오 청크 수신 + 페이싱 정규화
+            # ElevenLabs는 가변 크기 청크를 burst로 보냄 (2KB~32KB) — 그대로 흘리면
+            # Simli SDK의 AudioWorklet 큐 페이싱이 출렁여 stutter 발생.
+            # PCM16 mono 16kHz 기준 80ms = 2560 bytes 단위로 재패키징해
+            # WS 메시지 빈도를 ~12.5회/초로 평탄화.
+            PACED_CHUNK_BYTES = 2560  # 80ms @ 16kHz/16bit mono
+            buffer = bytearray()
             chunk_count = 0
             async for msg in ws:
                 try:
                     data = json.loads(msg)
                     if data.get("audio"):
-                        audio_bytes = base64.b64decode(data["audio"])
-                        chunk_count += 1
-                        yield audio_bytes
+                        buffer.extend(base64.b64decode(data["audio"]))
+                        while len(buffer) >= PACED_CHUNK_BYTES:
+                            yield bytes(buffer[:PACED_CHUNK_BYTES])
+                            del buffer[:PACED_CHUNK_BYTES]
+                            chunk_count += 1
                     if data.get("isFinal"):
                         break
                 except (json.JSONDecodeError, KeyError):
                     continue
 
-            logger.info(f"[TTS] WebSocket 스트리밍 완료: {chunk_count} chunks")
+            # 잔여 버퍼 flush (마지막 청크는 < 80ms일 수 있으나 끝 단어 잘림 방지 위해 그대로 송신)
+            if buffer:
+                yield bytes(buffer)
+                chunk_count += 1
+
+            logger.info(f"[TTS] WebSocket 스트리밍 완료: {chunk_count} chunks (80ms 페이싱)")
 
     async def _synthesize_http(
         self,
@@ -162,7 +175,7 @@ class ElevenLabsTTSService:
         stability: float,
         style: float,
         speed: float,
-        chunk_size: int = 4096,
+        chunk_size: int = 2560,  # WS 페이싱과 일치 (80ms @ 16kHz/16bit mono)
         voice_id: Optional[str] = None,
     ) -> AsyncGenerator[bytes, None]:
         """HTTP REST API를 사용한 TTS 스트리밍 (fallback)."""
