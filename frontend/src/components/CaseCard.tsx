@@ -219,7 +219,7 @@ export function CaseCard({ caseInfo, hidePortrait = false }: CaseCardProps) {
 
         {caseInfo.description && (
           <p
-            className="text-[12px] mt-2 line-clamp-2 leading-relaxed"
+            className="text-[12.5px] mt-2 leading-relaxed"
             style={{ color: "var(--tc-text-sec)" }}
           >
             {caseInfo.description}
