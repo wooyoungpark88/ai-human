@@ -319,8 +319,36 @@ export default function SessionPage() {
     conversationPhaseRef.current = "idle";
     avatar.setConversationPhase("idle");
 
-    // 대화가 있으면 피드백 생성
+    // 대화가 있으면 피드백 생성 + 대화록 저장
     if (messages.length >= 2) {
+      // 피드백 페이지에서 다운로드할 수 있도록 대화록·메타도 함께 보존
+      sessionStorage.setItem(
+        "lastTranscript",
+        JSON.stringify(
+          messages.map((m) => ({
+            role: m.role,
+            text: m.text,
+            emotion: m.emotion,
+            timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+          }))
+        )
+      );
+      sessionStorage.setItem(
+        "lastSessionMeta",
+        JSON.stringify({
+          case_id: caseId,
+          case_name: caseInfo?.name ?? "",
+          case_age: caseInfo?.age ?? null,
+          case_gender: caseInfo?.gender ?? "",
+          case_occupation: caseInfo?.occupation ?? "",
+          presenting_issue: caseInfo?.presenting_issue ?? "",
+          started_at: sessionStartedAt?.toISOString() ?? null,
+          ended_at: new Date().toISOString(),
+          message_count: messages.length,
+        })
+      );
+      sessionStorage.setItem("lastCaseId", caseId);
+
       setIsGeneratingFeedback(true);
       try {
         const res = await fetch(`${API_URL}/api/feedback/generate`, {
@@ -333,14 +361,13 @@ export default function SessionPage() {
         });
         const feedback = await res.json();
         sessionStorage.setItem("lastFeedback", JSON.stringify(feedback));
-        sessionStorage.setItem("lastCaseId", caseId);
         router.push("/feedback");
       } catch (err) {
         console.error("피드백 생성 실패:", err);
         setIsGeneratingFeedback(false);
       }
     }
-  }, [mic, ws, avatar, messages, caseId, router]);
+  }, [mic, ws, avatar, messages, caseId, caseInfo, sessionStartedAt, router]);
 
   // 텍스트 메시지 전송
   const handleSendText = useCallback(() => {

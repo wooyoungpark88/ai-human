@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
@@ -9,6 +9,122 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import type { SessionFeedback } from "@/lib/types";
+import { EMOTION_MAP } from "@/lib/constants";
+
+interface StoredMessage {
+  role: "user" | "assistant";
+  text: string;
+  emotion?: string;
+  timestamp?: string;
+}
+
+interface SessionMeta {
+  case_id: string;
+  case_name: string;
+  case_age?: number | null;
+  case_gender?: string;
+  case_occupation?: string;
+  presenting_issue?: string;
+  started_at?: string | null;
+  ended_at?: string | null;
+  message_count?: number;
+}
+
+/** Date 포맷 hh:mm:ss */
+function fmtTime(iso?: string): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+function fmtDate(iso?: string): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return "";
+  }
+}
+function fmtDuration(start?: string | null, end?: string | null): string {
+  if (!start || !end) return "";
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  if (ms <= 0) return "";
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${m}분 ${String(s).padStart(2, "0")}초`;
+}
+
+function buildMarkdown(meta: SessionMeta, msgs: StoredMessage[]): string {
+  const lines: string[] = [];
+  lines.push(`# 상담 세션 대화록`);
+  lines.push("");
+  lines.push(`- **내담자**: ${meta.case_name || "(미상)"}${meta.case_age ? ` · ${meta.case_age}세` : ""}${meta.case_gender ? ` · ${meta.case_gender}` : ""}`);
+  if (meta.case_occupation) lines.push(`- **직업**: ${meta.case_occupation}`);
+  if (meta.presenting_issue) lines.push(`- **호소 문제**: ${meta.presenting_issue}`);
+  if (meta.started_at) lines.push(`- **시작**: ${fmtDate(meta.started_at)}`);
+  if (meta.ended_at) lines.push(`- **종료**: ${fmtDate(meta.ended_at)}`);
+  const dur = fmtDuration(meta.started_at, meta.ended_at);
+  if (dur) lines.push(`- **세션 시간**: ${dur}`);
+  lines.push(`- **메시지 수**: ${msgs.length}회 (상담사 ${msgs.filter((m) => m.role === "user").length} / 내담자 ${msgs.filter((m) => m.role === "assistant").length})`);
+  lines.push("");
+  lines.push("---");
+  lines.push("");
+  lines.push("## 대화");
+  lines.push("");
+
+  msgs.forEach((m) => {
+    const t = fmtTime(m.timestamp);
+    const speaker = m.role === "user" ? "상담사" : "내담자";
+    const emo = m.emotion ? ` (${m.emotion})` : "";
+    const header = `**[${t}] ${speaker}${emo}**`;
+    lines.push(header);
+    m.text.split("\n").forEach((line) => lines.push(`> ${line}`));
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildTxt(meta: SessionMeta, msgs: StoredMessage[]): string {
+  const lines: string[] = [];
+  lines.push("=".repeat(50));
+  lines.push("상담 세션 대화록");
+  lines.push("=".repeat(50));
+  lines.push("");
+  lines.push(`내담자: ${meta.case_name || "(미상)"}${meta.case_age ? ` · ${meta.case_age}세` : ""}`);
+  if (meta.presenting_issue) lines.push(`호소 문제: ${meta.presenting_issue}`);
+  if (meta.started_at) lines.push(`시작: ${fmtDate(meta.started_at)}`);
+  const dur = fmtDuration(meta.started_at, meta.ended_at);
+  if (dur) lines.push(`세션 시간: ${dur}`);
+  lines.push("");
+  lines.push("-".repeat(50));
+  lines.push("");
+
+  msgs.forEach((m) => {
+    const t = fmtTime(m.timestamp);
+    const speaker = m.role === "user" ? "상담사" : "내담자";
+    const emo = m.emotion ? ` (${m.emotion})` : "";
+    lines.push(`[${t}] ${speaker}${emo}`);
+    lines.push(m.text);
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function downloadFile(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 function ScoreCircle({ score }: { score: number }) {
   const circumference = 2 * Math.PI * 54;
@@ -66,19 +182,53 @@ export default function FeedbackPage() {
   const router = useRouter();
   const [feedback, setFeedback] = useState<SessionFeedback | null>(null);
   const [caseId, setCaseId] = useState<string>("");
+  const [messages, setMessages] = useState<StoredMessage[]>([]);
+  const [meta, setMeta] = useState<SessionMeta | null>(null);
+  const [showTranscript, setShowTranscript] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("lastFeedback");
     const storedCaseId = sessionStorage.getItem("lastCaseId");
+    const storedTranscript = sessionStorage.getItem("lastTranscript");
+    const storedMeta = sessionStorage.getItem("lastSessionMeta");
     if (stored) {
-      try {
-        setFeedback(JSON.parse(stored));
-      } catch {
-        /* ignore */
-      }
+      try { setFeedback(JSON.parse(stored)); } catch { /* ignore */ }
     }
     if (storedCaseId) setCaseId(storedCaseId);
+    if (storedTranscript) {
+      try { setMessages(JSON.parse(storedTranscript)); } catch { /* ignore */ }
+    }
+    if (storedMeta) {
+      try { setMeta(JSON.parse(storedMeta)); } catch { /* ignore */ }
+    }
   }, []);
+
+  const transcriptFilename = useMemo(() => {
+    const date = meta?.started_at ? new Date(meta.started_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const safeName = (meta?.case_name || caseId || "session").replace(/[^a-zA-Z0-9가-힣_-]/g, "_");
+    return `transcript_${date}_${safeName}`;
+  }, [meta, caseId]);
+
+  const downloadMd = () => {
+    if (!messages.length || !meta) return;
+    downloadFile(`${transcriptFilename}.md`, buildMarkdown(meta, messages), "text/markdown");
+  };
+  const downloadTxt = () => {
+    if (!messages.length || !meta) return;
+    downloadFile(`${transcriptFilename}.txt`, buildTxt(meta, messages), "text/plain");
+  };
+  const downloadJson = () => {
+    if (!messages.length || !meta) return;
+    downloadFile(
+      `${transcriptFilename}.json`,
+      JSON.stringify({ meta, messages, feedback }, null, 2),
+      "application/json"
+    );
+  };
+  const copyMd = async () => {
+    if (!messages.length || !meta) return;
+    await navigator.clipboard.writeText(buildMarkdown(meta, messages));
+  };
 
   if (!feedback) {
     return (
@@ -198,6 +348,95 @@ export default function FeedbackPage() {
                   </li>
                 ))}
               </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 대화록 (있을 때만) */}
+        {messages.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <CardTitle className="text-base">대화록</CardTitle>
+                <div className="flex flex-wrap gap-1.5">
+                  <Button size="sm" variant="default" onClick={downloadMd}>
+                    📄 Markdown
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={downloadTxt}>
+                    TXT
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={downloadJson}>
+                    JSON
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={copyMd} title="Markdown 클립보드 복사">
+                    📋 복사
+                  </Button>
+                </div>
+              </div>
+              {meta && (
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  {meta.case_name}
+                  {meta.case_age ? ` · ${meta.case_age}세` : ""}
+                  {meta.started_at && ` · ${fmtDate(meta.started_at)}`}
+                  {(() => {
+                    const d = fmtDuration(meta.started_at, meta.ended_at);
+                    return d ? ` · ${d}` : "";
+                  })()}
+                  {" · "}
+                  상담사 {messages.filter((m) => m.role === "user").length}회 / 내담자{" "}
+                  {messages.filter((m) => m.role === "assistant").length}회
+                </p>
+              )}
+            </CardHeader>
+            <CardContent>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowTranscript((s) => !s)}
+                className="mb-3"
+              >
+                {showTranscript ? "▾ 본문 접기" : "▸ 본문 펼치기"}
+              </Button>
+              {showTranscript && (
+                <div className="space-y-3 max-h-[480px] overflow-y-auto pr-2">
+                  {messages.map((m, i) => {
+                    const isUser = m.role === "user";
+                    const emoji = m.emotion
+                      ? EMOTION_MAP[m.emotion as keyof typeof EMOTION_MAP]?.emoji
+                      : null;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
+                      >
+                        <div
+                          className={`text-[10px] mb-1 ${
+                            isUser ? "text-right" : "text-left"
+                          }`}
+                          style={{ color: "var(--tc-text-muted)" }}
+                        >
+                          {isUser ? "상담사" : "내담자"}
+                          {emoji && !isUser ? ` ${emoji}` : ""}
+                          {m.timestamp ? ` · ${fmtTime(m.timestamp)}` : ""}
+                        </div>
+                        <div
+                          className="max-w-[80%] px-3 py-2 rounded-2xl text-[13px] leading-relaxed"
+                          style={{
+                            background: isUser
+                              ? "var(--tc-accent-dark)"
+                              : "var(--tc-soft-bg)",
+                            color: isUser ? "#fff" : "var(--tc-text)",
+                            borderBottomRightRadius: isUser ? "4px" : undefined,
+                            borderBottomLeftRadius: !isUser ? "4px" : undefined,
+                          }}
+                        >
+                          {m.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
