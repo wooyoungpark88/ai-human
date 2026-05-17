@@ -16,7 +16,11 @@ class Settings(BaseSettings):
     # ElevenLabs
     ELEVENLABS_API_KEY: str = ""
     ELEVENLABS_VOICE_ID: str = ""
-    ELEVENLABS_MODEL_ID: str = "eleven_v3"  # v3: 오디오 태그 지원 ([cheerfully] 등) — 감정 프로소디 표현 활성화
+    # eleven_flash_v2_5: 첫 청크 ~75ms (vs eleven_v3 ~500-1000ms).
+    # 실시간 Simli 영상 립싱크 등 대화형 시나리오에 최적.
+    # 오디오 태그([cheerfully] 등)는 지원 안 되지만, _supports_audio_tags()가
+    # 자동으로 분기하여 텍스트로 새지 않음.
+    ELEVENLABS_MODEL_ID: str = "eleven_flash_v2_5"
 
     # Deepgram
     DEEPGRAM_API_KEY: str = ""
