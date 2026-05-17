@@ -167,9 +167,13 @@ export default function VideoCasesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {filteredCases.map((c) => (
-              <CaseCard key={c.id} caseInfo={c} hidePortrait />
-            ))}
+            {filteredCases.map((c) => {
+              // 초상화가 있으면 그대로 표시, 없으면 Live AI Human 영상 placeholder 노출
+              const hasPortrait = !!(c.portrait_variants?.neutral || c.portrait_url);
+              return (
+                <CaseCard key={c.id} caseInfo={c} hidePortrait={!hasPortrait} />
+              );
+            })}
           </div>
         )}
       </main>
