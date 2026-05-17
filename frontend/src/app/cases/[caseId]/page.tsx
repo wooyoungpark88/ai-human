@@ -203,22 +203,26 @@ export default function CaseSpecPage() {
               >
                 🎛️ 품질 튜닝
               </Link>
-              <button
-                onClick={() => regeneratePortrait("all_emotions")}
-                disabled={portraitBusy}
-                className="px-4 py-2 rounded-full text-[12px] font-semibold disabled:opacity-50 transition-colors"
-                style={{
-                  background: "var(--tc-card-white)",
-                  color: "var(--tc-accent-dark)",
-                  border: "1.5px solid var(--tc-border-warm)",
-                }}
-              >
-                {portraitBusy
-                  ? "생성 중..."
-                  : (data.portrait_variants && Object.keys(data.portrait_variants).length >= 8)
-                    ? "🎨 8장 재생성"
-                    : "🎨 8가지 표정 생성"}
-              </button>
+              {/* 8가지 표정 생성 — photo 모드 케이스에서만 노출
+                  (영상 모드는 라이브 비디오라 정적 초상화 불필요) */}
+              {data.avatar_type === "photo" && (
+                <button
+                  onClick={() => regeneratePortrait("all_emotions")}
+                  disabled={portraitBusy}
+                  className="px-4 py-2 rounded-full text-[12px] font-semibold disabled:opacity-50 transition-colors"
+                  style={{
+                    background: "var(--tc-card-white)",
+                    color: "var(--tc-accent-dark)",
+                    border: "1.5px solid var(--tc-border-warm)",
+                  }}
+                >
+                  {portraitBusy
+                    ? "생성 중..."
+                    : (data.portrait_variants && Object.keys(data.portrait_variants).length >= 8)
+                      ? "🎨 8장 재생성"
+                      : "🎨 8가지 표정 생성"}
+                </button>
+              )}
               <Link
                 href={`/session/${caseId}`}
                 className="px-5 py-2.5 rounded-full text-[12.5px] font-bold transition-opacity hover:opacity-90 shadow-[0_3px_10px_rgba(60,40,23,0.15)]"

@@ -125,8 +125,7 @@ export function AvatarView({
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
-            style={{ objectPosition: "center top" }}
+            className="w-full h-full object-contain"
           />
           <audio ref={audioRef} autoPlay />
           {isInitialized && !hasVideoStream && (
@@ -162,8 +161,7 @@ export function AvatarView({
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
-            style={{ objectPosition: "center top" }}
+            className="w-full h-full object-contain"
           />
           <audio ref={audioRef} autoPlay />
           {isInitialized && !hasVideoStream && (
@@ -231,8 +229,7 @@ export function AvatarView({
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
-            style={{ objectPosition: "center top" }}
+            className="w-full h-full object-contain"
           />
           <audio ref={audioRef} autoPlay />
           {/* 데모 모드 오버레이 (비디오 스트림 없을 때) */}
