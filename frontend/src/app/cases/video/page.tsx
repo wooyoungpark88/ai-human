@@ -64,17 +64,21 @@ export default function VideoCasesPage() {
             >
               <Link href="/" className="hover:underline">홈</Link>
               <span style={{ color: "var(--tc-text-muted)" }}>›</span>
-              <span>실시간 영상 AI 휴먼 실습</span>
+              <span>영상 기반 훈련</span>
             </div>
             <h1 className="tc-page-h text-[20px] sm:text-[22px] lg:text-[24px]">
-              실시간 영상 AI 휴먼 실습
+              영상 기반 훈련
             </h1>
             <p
               className="text-[12.5px] sm:text-[13px] mt-1.5 max-w-[780px] leading-relaxed"
               style={{ color: "var(--tc-text-sec)" }}
             >
-              움직이는 AI 휴먼(VRM / DeepBrain Web SDK)과 실시간으로 음성·텍스트 상담을
-              실습합니다. 내담자의 감정에 따라 카드와 세션 헤더의 사진도 함께 변합니다.
+              실제 사람처럼 움직이는 내담자와 영상으로 마주 보며 상담합니다.
+              표정·시선·입 모양이 실시간으로 반응해 대면 상담에 가장 가까운 환경입니다.
+              <span className="ml-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                style={{ background: "var(--tc-cream)", color: "var(--tc-accent-deep)", border: "1px solid var(--tc-border-warm)" }}>
+                💰 50분 약 ₩10,000
+              </span>
             </p>
           </div>
           <Link

@@ -42,18 +42,21 @@ export default function PhotoCasesPage() {
             >
               <Link href="/" className="hover:underline">홈</Link>
               <span style={{ color: "var(--tc-text-muted)" }}>›</span>
-              <span>텍스트·음성 케이스 실습</span>
+              <span>이미지 기반 훈련</span>
             </div>
             <h1 className="tc-page-h text-[20px] sm:text-[22px] lg:text-[24px]">
-              텍스트·음성 케이스 실습
+              이미지 기반 훈련
             </h1>
             <p
               className="text-[12.5px] sm:text-[13px] mt-1.5 max-w-[780px] leading-relaxed"
               style={{ color: "var(--tc-text-sec)" }}
             >
-              실시간 영상 AI 휴먼 없이, 내담자 감정에 따라 표정이 변하는{" "}
-              <strong>정적 초상화</strong>로 진행하는 상담 실습. 음성·텍스트 대화는 동일하게
-              지원되며, 표정 변화와 감정 흐름 관찰에 집중합니다.
+              내담자의 감정에 따라 표정이 바뀌는 사진과 함께 실시간으로 음성·텍스트 상담을 진행합니다.
+              가볍게 반복 연습할 수 있어 라포 형성·경청 훈련에 적합합니다.
+              <span className="ml-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                style={{ background: "var(--tc-cream)", color: "var(--tc-accent-deep)", border: "1px solid var(--tc-border-warm)" }}>
+                💰 50분 약 ₩2,000
+              </span>
             </p>
           </div>
           <Link

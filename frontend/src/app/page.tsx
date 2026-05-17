@@ -15,16 +15,9 @@ export default function HomePage() {
           >
             Terraco · AI 상담 훈련
           </p>
-          <h1 className="tc-page-h text-[26px] sm:text-[32px] mb-3">
+          <h1 className="tc-page-h text-[26px] sm:text-[32px]">
             실습 모드를 선택하세요
           </h1>
-          <p
-            className="text-[13px] sm:text-[14px] max-w-[640px] mx-auto leading-relaxed"
-            style={{ color: "var(--tc-text-sec)" }}
-          >
-            영상 AI 휴먼과 대화하거나, 표정이 변하는 사진 기반 케이스로 상담 실습을 진행할 수 있습니다.
-            각 모드는 서로 다른 상담 시뮬레이션 환경을 제공합니다.
-          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
@@ -67,7 +60,13 @@ export default function HomePage() {
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  실시간 영상 AI 휴먼
+                  영상 기반 훈련
+                </div>
+                <div
+                  className="text-[11px] mt-1.5"
+                  style={{ color: "rgba(255,246,234,0.75)" }}
+                >
+                  실제 사람처럼 움직이는 내담자
                 </div>
               </div>
             </div>
@@ -76,15 +75,26 @@ export default function HomePage() {
                 className="text-[13px] leading-relaxed mb-3"
                 style={{ color: "var(--tc-text)" }}
               >
-                실제로 움직이고 말하는 AI 휴먼과 음성·텍스트로 상담합니다. Simli·HeyGen·DeepBrain
-                Web SDK·VRM·OpenAvatarChat 등 5종 실시간 엔진과 연동된 5개 케이스.
+                내담자가 영상으로 마주 보며 말하고 표정·시선·입 모양이 실시간으로 반응합니다.
+                대면 상담과 가장 가까운 환경으로, 비언어적 소통까지 연습할 수 있습니다.
               </p>
-              <div className="flex flex-wrap gap-1.5 mb-4">
+              <div className="flex flex-wrap gap-1.5 mb-3">
                 <span className="tc-tag tc-tag-cream">이준호</span>
                 <span className="tc-tag tc-tag-cream">김서연</span>
                 <span className="tc-tag tc-tag-cream">박지영</span>
                 <span className="tc-tag tc-tag-cream">한지유</span>
                 <span className="tc-tag tc-tag-cream">오은정</span>
+              </div>
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold mb-4"
+                style={{
+                  background: "var(--tc-soft-bg)",
+                  color: "var(--tc-text-sec)",
+                  border: "1px solid var(--tc-border)",
+                }}
+              >
+                💰 50분 회기 약 <strong style={{ color: "var(--tc-accent-deep)" }}>₩10,000</strong>
+                <span className="opacity-60 ml-0.5">(엔진 ₩2,000~₩15,000)</span>
               </div>
               <div
                 className="flex items-center justify-between text-[12px] font-semibold"
@@ -120,7 +130,7 @@ export default function HomePage() {
                 }}
               />
               <div className="relative text-center px-6">
-                <div className="text-[64px] sm:text-[72px] leading-none mb-3">💬</div>
+                <div className="text-[64px] sm:text-[72px] leading-none mb-3">🖼️</div>
                 <div
                   className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5"
                   style={{ color: "var(--tc-text-muted)" }}
@@ -135,7 +145,13 @@ export default function HomePage() {
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  텍스트·음성 케이스 실습
+                  이미지 기반 훈련
+                </div>
+                <div
+                  className="text-[11px] mt-1.5"
+                  style={{ color: "var(--tc-text-muted)" }}
+                >
+                  표정이 바뀌는 사진 + 실시간 음성
                 </div>
               </div>
             </div>
@@ -144,19 +160,31 @@ export default function HomePage() {
                 className="text-[13px] leading-relaxed mb-3"
                 style={{ color: "var(--tc-text)" }}
               >
-                실시간 영상 휴먼 없이, 내담자의 감정 변화에 따라 표정이 바뀌는{" "}
-                <strong>정적 초상화</strong>로 상담합니다. 음성·텍스트 대화는 동일하게 지원되며
-                감정 흐름 관찰에 집중하는 모드.
+                내담자의 감정에 따라 표정이 바뀌는 사진과 함께 실시간으로 음성·텍스트 상담을
+                진행합니다. 가볍게 빠르게 반복 연습할 수 있어 회기 초기 라포 형성이나 경청 훈련에
+                적합합니다.
               </p>
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                <span className="tc-tag tc-tag-cream">박지영 (사진 모드)</span>
-                <span className="tc-tag tc-tag-cream">한지유 (사진 모드)</span>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                <span className="tc-tag tc-tag-cream">박지영</span>
+                <span className="tc-tag tc-tag-cream">한지유</span>
+                <span className="tc-tag tc-tag-cream">박준영</span>
+              </div>
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold mb-4"
+                style={{
+                  background: "var(--tc-soft-bg)",
+                  color: "var(--tc-text-sec)",
+                  border: "1px solid var(--tc-border)",
+                }}
+              >
+                💰 50분 회기 약 <strong style={{ color: "var(--tc-accent-deep)" }}>₩2,000</strong>
+                <span className="opacity-60 ml-0.5">(영상 비용 없음)</span>
               </div>
               <div
                 className="flex items-center justify-between text-[12px] font-semibold"
                 style={{ color: "var(--tc-text-sec)" }}
               >
-                <span>사진 모드 실습 시작</span>
+                <span>이미지 모드 실습 시작</span>
                 <span className="text-[16px] transition-transform group-hover:translate-x-1">→</span>
               </div>
             </div>
