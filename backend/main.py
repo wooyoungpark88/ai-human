@@ -1001,12 +1001,26 @@ class ConversationSession:
                 if self.case_profile
                 else None
             )
+
+            # hybrid realtime pacing — ElevenLabs flash가 realtime의 5~10배 속도로 생성하므로
+            # 그대로 burst-send하면 Simli LiveKit transport에 burst 부하가 직접 도달해 stutter 발생.
+            # 첫 N개는 즉시 송신해 재생 시작을 빠르게, 이후엔 realtime에 가깝게 페이싱.
+            PACED_INTERVAL_S = 0.075      # 80ms 청크 길이보다 약간 짧게 (언더런 방지)
+            BURST_PREFIX_COUNT = 3        # 첫 3개 청크는 즉시 송신 (240ms 초기 버퍼)
+            t_last_send = time.monotonic()
+
             async for audio_chunk in self.tts_service.synthesize_speech_streaming(
                 text=llm_response.text,
                 emotion_mapping=emotion_mapping,
                 voice_direction=llm_response.voice_direction,
                 voice_id=case_voice_id,
             ):
+                # 첫 N개는 burst, 이후 페이싱
+                if audio_chunk_count >= BURST_PREFIX_COUNT:
+                    elapsed = time.monotonic() - t_last_send
+                    if elapsed < PACED_INTERVAL_S:
+                        await asyncio.sleep(PACED_INTERVAL_S - elapsed)
+
                 audio_b64 = base64.b64encode(audio_chunk).decode("utf-8")
                 await self.send_message(
                     ServerMessage(
@@ -1015,6 +1029,7 @@ class ConversationSession:
                         is_final=False,
                     )
                 )
+                t_last_send = time.monotonic()
                 audio_chunk_count += 1
 
             # 오디오 스트리밍 종료 신호
