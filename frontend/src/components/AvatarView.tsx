@@ -66,12 +66,12 @@ export function AvatarView({
       className={`relative overflow-hidden bg-black w-full ${
         avatarType === "photo"
           ? "max-w-sm aspect-[3/4] flex-shrink-0"
-          : "max-w-xl aspect-[4/5]"
+          : "max-w-lg aspect-square"
       } mx-auto rounded-2xl border-2 transition-all duration-700 ${borderClass} ${glowClass}`}
       style={
         avatarType === "photo"
           ? { aspectRatio: "3 / 4", flexShrink: 0 }
-          : { aspectRatio: "4 / 5" }
+          : { aspectRatio: "1 / 1" }
       }
     >
       {/* VRM 아바타 */}
