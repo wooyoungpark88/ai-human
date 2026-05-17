@@ -94,13 +94,7 @@ export default function NewPersonaPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
-  if (unlocked === null) {
-    // SSR/하이드레이션 단계 — 빈 화면 (깜빡임 방지)
-    return <div className="min-h-screen" style={{ background: "var(--tc-bg)" }} />;
-  }
-  if (!unlocked) {
-    return <BuilderLockScreen onUnlock={() => setUnlocked(true)} />;
-  }
+  // ⚠️ 비밀번호 early return은 useMemo(completion) 호출 다음에 위치해야 함 (Hook 순서 유지)
 
   const update = <K extends keyof PersonaDraft>(key: K, value: PersonaDraft[K]) =>
     setPersona((p) => ({ ...p, [key]: value }));
@@ -207,6 +201,15 @@ export default function NewPersonaPage() {
   };
 
   const completion = useMemo(() => computeCompletion(persona), [persona]);
+
+  // === 비밀번호 게이트 — 모든 Hook 호출 다음에 위치 (Rules of Hooks 준수) ===
+  if (unlocked === null) {
+    // SSR/하이드레이션 단계 — 빈 화면 (깜빡임 방지)
+    return <div className="min-h-screen" style={{ background: "var(--tc-bg)" }} />;
+  }
+  if (!unlocked) {
+    return <BuilderLockScreen onUnlock={() => setUnlocked(true)} />;
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "var(--tc-bg)" }}>
