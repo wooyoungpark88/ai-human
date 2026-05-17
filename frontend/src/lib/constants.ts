@@ -25,6 +25,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   relationship: "관계",
   depression: "우울",
   self_esteem: "자존감",
+  bullying: "따돌림",
 };
 
 /** 케이스 카테고리 색상 */
